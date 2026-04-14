@@ -9,10 +9,10 @@ constructs that contain internal whitespace (``like this``,
 :role:`display <target>`, `text <url>`_, *emphasis*, **bold**, ...)
 are treated as atomic tokens and never broken across lines.
 
-Redundant internal spaces in prose paragraphs are collapsed to a
-single space (e.g. ``hello  world`` → ``hello world``). Inline RST
-constructs that intentionally contain spaces (`` ``like  this`` ``,
-``*two  words*``) are protected and left intact.
+Redundant internal spaces in prose paragraphs are collapsed to a single
+space (e.g. ``hello  world`` → ``hello world``). Inline RST constructs
+that intentionally contain spaces (`` ``like  this`` ``, ``*two
+words*``) are protected and left intact.
 
 If a paragraph already fits within the target width and contains no
 redundant spaces, it is emitted unchanged -- so clean files produce a
@@ -20,14 +20,15 @@ zero-byte diff.
 
 Limitations
 -----------
+
 Prose-body directives (``.. class::``, ``.. method::``, ``.. note::``,
 ``.. warning::``, ``.. versionadded::``, ...) have their body
 recursively wrapped at the body's own indent. Other directives are
 treated as opaque -- the marker line plus all following indented lines
 are passed through verbatim. This keeps us safe on literal-body
 directives (``.. code-block::``, ``.. literalinclude::``, ``.. raw::``,
-``.. image::``, ...) without hand-maintaining their content models.
-The whitelist lives in ``_PROSE_BODY_DIRECTIVES`` below.
+``.. image::``, ...) without hand-maintaining their content models. The
+whitelist lives in ``_PROSE_BODY_DIRECTIVES`` below.
 
 Other indented content at column 0 is passed through verbatim:
 
@@ -49,9 +50,9 @@ general-purpose RST formatter.
 
 Usage::
 
-    python3 scripts/internal/rst_wrap_lines.py docs/*.rst
-    python3 scripts/internal/rst_wrap_lines.py --check docs/*.rst
-    python3 scripts/internal/rst_wrap_lines.py --width 80 foo.rst
+    rst-wrap-lines docs/*.rst
+    rst-wrap-lines --check docs/*.rst
+    rst-wrap-lines --width 80 foo.rst
 """
 
 import argparse

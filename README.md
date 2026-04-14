@@ -1,6 +1,7 @@
 # rst-wrap-lines
 
-A command-line tool that wraps RST prose paragraphs to a maximum line length.
+A command-line tool that wraps prose paragraphs of `.rst` (reStructured Text)
+files to a maximum line length.
 
 Only prose paragraphs and list items are re-wrapped. Everything else
 (directives, literal blocks, tables, section underlines, comments, indented
