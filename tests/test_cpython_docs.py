@@ -5,17 +5,36 @@ directory and reused across runs. The clone only happens when this
 test class is collected.
 """
 
+import re
 import subprocess
 from pathlib import Path
 
 import pytest
 
+from rst_wrap_lines import WIDTH
 from rst_wrap_lines import wrap_rst
 
 from . import InternalBaseTest
 
 CLONE_DIR = Path("/tmp/rst-wrap-lines-cpython")
 REPO_URL = "https://github.com/python/cpython"
+
+# Matches inline RST constructs that may legitimately contain multiple
+# spaces (inline literals, roles, hyperlinks, emphasis, bold). Used to
+# exclude protected content when checking for bare double-spaces.
+_INLINE_MASK_RE = re.compile(
+    r"``[^`]+``"  # ``inline literal``
+    r"|:[a-zA-Z][\w:+.-]*:`[^`]+?`_{0,2}"  # :role:`text`
+    r"|`[^`]+?<[^>]+>`_{1,2}"  # `display <url>`_
+    r"|`[^`]+?`_{0,2}"  # `phrase ref`_
+    r"|\*\*[^*]+\*\*"  # **bold**
+    r"|\*[^*]+\*"  # *emphasis*
+)
+
+
+def _has_bare_double_space(line):
+    """True if *line* contains '  ' outside inline RST constructs."""
+    return "  " in _INLINE_MASK_RE.sub("X", line)
 
 
 class TestCPythonDocs(InternalBaseTest):
@@ -51,19 +70,39 @@ class TestCPythonDocs(InternalBaseTest):
         for path in rst_files:
             src = path.read_text(encoding="utf-8")
             out = wrap_rst(src)
+            src_line_set = set(src.splitlines())
+
             # 1. idempotency
             if wrap_rst(out) != out:
                 failures.append(f"{path.name}: not idempotent")
                 continue
-            # 2. the tool must never increase the maximum line length of
-            # a file (e.g. by joining a hyperlink that was manually split
-            # across lines into a single un-splittable token).
-            max_src = max((len(x) for x in src.splitlines()), default=0)
-            max_out = max((len(x) for x in out.splitlines()), default=0)
-            if max_out > max_src:
-                failures.append(
-                    f"{path.name}: max line length increased"
-                    f" ({max_src} -> {max_out})"
-                )
+
+            # 2. no tool-produced line may exceed the target width.
+            # Verbatim passthrough of already-long source lines is OK.
+            for line in out.splitlines():
+                if line in src_line_set:
+                    continue  # verbatim passthrough -- OK
+                if len(line) > WIDTH:
+                    failures.append(
+                        f"{path.name}: tool-produced line exceeds width"
+                        f" ({len(line)} > {WIDTH}): {line!r:.80}"
+                    )
+                    break
+
+            # 3. no prose line produced by the tool should contain a bare
+            # double-space (spaces inside inline RST constructs are
+            # intentional and excluded from this check).
+            for line in out.splitlines():
+                if line in src_line_set:
+                    continue  # verbatim passthrough -- OK
+                if line.startswith((" ", "\t", "..")):
+                    continue  # indented or directive line -- skip
+                if _has_bare_double_space(line):
+                    failures.append(
+                        f"{path.name}: tool-produced line has bare"
+                        f" double-space: {line!r:.100}"
+                    )
+                    break
+
         if failures:
             pytest.fail("\n".join(failures))

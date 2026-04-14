@@ -9,10 +9,10 @@ constructs that contain internal whitespace (``like this``,
 :role:`display <target>`, `text <url>`_, *emphasis*, **bold**, ...)
 are treated as atomic tokens and never broken across lines.
 
-Redundant internal spaces in prose paragraphs are collapsed to a single
-space (e.g. ``hello  world`` → ``hello world``). Inline RST constructs
-that intentionally contain spaces (`` ``like  this`` ``, ``*two
-words*``) are protected and left intact.
+Double spaces in prose paragraphs are removed (e.g. ``hello  world``
+→ ``hello world``), even when the paragraph already fits within the
+target width. Inline RST constructs that intentionally contain spaces
+(`` ``like  this`` ``, ``*two words*``) are protected and left intact.
 
 If a paragraph already fits within the target width and contains no
 redundant spaces, it is emitted unchanged -- so clean files produce a
@@ -410,11 +410,10 @@ def _handle_list_run(lines, i, n, width):
             joined = " ".join(buf)
             wrapped = _wrap_paragraph(joined, width, initial, subsequent)
             candidate = wrapped.split("\n")
-            max_orig = max(len(ln) for ln in original)
             # No-lengthen guard: if wrapping would produce a line longer
-            # than the longest original line (e.g. because a long inline
-            # token cannot be split), keep the original verbatim.
-            if any(len(ln) > max_orig for ln in candidate):
+            # than width (e.g. because a long inline token such as a
+            # hyperlink cannot be split), keep the original verbatim.
+            if any(len(ln) > width for ln in candidate):
                 emitted.extend(original)
             else:
                 emitted.extend(candidate)
@@ -460,11 +459,10 @@ def _handle_prose(lines, i, n, width):
         return buf, j
     wrapped = _wrap_paragraph(normalized, width, "", "")
     candidate = wrapped.split("\n")
-    max_orig = max(len(ln) for ln in buf)
     # No-lengthen guard: if wrapping would produce a line longer than
-    # the longest original line (e.g. because a long inline token such
-    # as a hyperlink or role cannot be split), keep the original verbatim.
-    if any(len(ln) > max_orig for ln in candidate):
+    # width (e.g. because a long inline token such as a hyperlink or
+    # role cannot be split), keep the original verbatim.
+    if any(len(ln) > width for ln in candidate):
         return buf, j
     return candidate, j
 
@@ -475,7 +473,7 @@ def _handle_prose(lines, i, n, width):
 
 
 def wrap_rst(source, width=WIDTH):
-    """Return *source* with prose paragraphs wrapped to *width*."""
+    """Wrap prose paragraphs to *width* and remove double spaces."""
     lines = source.splitlines()
     out = []
     i = 0

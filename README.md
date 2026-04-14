@@ -34,6 +34,8 @@ Options:
 - List items (bullet and enumerated), including multi-line continuations
 - Bodies of prose-body directives (`.. note::`, `.. warning::`,
   `.. versionadded::`, `.. class::`, etc.)
+- Double spaces in prose are removed (e.g. `hello  world` → `hello world`),
+  even when the paragraph already fits within the target width
 
 ## What is left untouched
 
@@ -47,8 +49,7 @@ Options:
 
 Inline RST constructs that contain internal whitespace (`` ``like this`` ``,
 ``:role:`display <target>` ``, ``*emphasis*``, ``**bold**``, etc.) are treated
-as atomic tokens and never broken across lines. Redundant spaces between words
-in plain prose are collapsed to a single space; spaces inside inline constructs
+as atomic tokens and never broken across lines. Spaces inside inline constructs
 are left intact.
 
 ## Development
