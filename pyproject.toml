@@ -16,6 +16,26 @@ rst-wrap-lines = "rst_wrap_lines:main"
 [tool.setuptools]
 py-modules = ["rst_wrap_lines"]
 
+[tool.pytest]
+addopts = [
+    "--capture=no",
+    "--instafail",
+    "--no-header",
+    "--strict-config",
+    "--strict-markers",
+    "--tb=short",
+    "--verbose",
+    "-p instafail",
+    "-p no:doctest",
+    "-p no:junitxml",
+    "-p no:nose",
+    "-p no:pastebin",
+    "-p xdist",
+]
+verbosity_subtests = "0"
+testpaths = ["tests/"]
+python_files = ["test_*.py"]
+
 [tool.black]
 target-version = ["py37"]
 line-length = 79
@@ -116,6 +136,9 @@ ignore = [
     "TRY301",  # Abstract `raise` to an inner function
     "UP032",  # [*] Use f-string instead of `format` call
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B904", "EM101", "EM102", "EM103", "PLC1901", "RUF069", "TRY003"]
 
 [tool.ruff.lint.isort]
 # https://beta.ruff.rs/docs/settings/#isort
