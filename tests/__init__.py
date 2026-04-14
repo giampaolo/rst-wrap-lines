@@ -25,6 +25,12 @@ _HYPERLINK_TARGET_RE = re.compile(r"^\.\. _[^:]+: \S")
 # Matches list item first lines (bullet or enumerated).
 _LIST_ITEM_RE = re.compile(r"^(\s*)([-*+]|\d+[.)]) ")
 
+# Matches directive marker lines: .. foo:: or .. domain:foo::
+_DIRECTIVE_RE = re.compile(r"^\s*\.\. \w[\w:+.-]*::")
+
+# Matches section underline/overline lines (2+ repeated punctuation chars).
+_UNDERLINE_RE = re.compile(r"^([=\-~^#*+\']{2,})\s*$")
+
 
 def _has_bare_double_space(line):
     """True if *line* contains '  ' outside inline RST constructs."""
@@ -50,10 +56,29 @@ class BaseTest:
     def check_all(self, src, out):
         """Run all universal sanity checks on a (src, out) pair."""
         self.assert_idempotent(src)
+        self.assert_trailing_newline_consistent(src, out)
         self.assert_no_trailing_whitespace_introduced(src, out)
         self.assert_no_double_space_in_list_items(src, out)
         self.assert_blank_line_count_preserved(src, out)
         self.assert_hyperlink_targets_unchanged(src, out)
+        self.assert_directive_markers_preserved(src, out)
+        self.assert_section_underlines_preserved(src, out)
+
+    def assert_trailing_newline_consistent(self, src, out):
+        """Assert output ends with newline iff source does."""
+        assert src.endswith("\n") == out.endswith("\n"), (
+            "trailing newline presence changed between source and output"
+        )
+
+    def assert_no_trailing_whitespace_introduced(self, src, out):
+        """Assert no tool-produced line ends with whitespace."""
+        src_line_set = set(src.splitlines())
+        for line in out.splitlines():
+            if line in src_line_set:
+                continue
+            assert line == line.rstrip(), (
+                f"tool-produced line has trailing whitespace: {line!r}"
+            )
 
     def assert_no_double_space_in_list_items(self, src, out):
         """Assert no tool-produced list-item line contains bare double spaces."""
@@ -88,12 +113,20 @@ class BaseTest:
                     f"hyperlink target line missing from output: {line!r}"
                 )
 
-    def assert_no_trailing_whitespace_introduced(self, src, out):
-        """Assert no tool-produced line ends with whitespace."""
-        src_line_set = set(src.splitlines())
-        for line in out.splitlines():
-            if line in src_line_set:
-                continue
-            assert line == line.rstrip(), (
-                f"tool-produced line has trailing whitespace: {line!r}"
-            )
+    def assert_directive_markers_preserved(self, src, out):
+        """Assert every directive marker line in src appears in out."""
+        out_lines = set(out.splitlines())
+        for line in src.splitlines():
+            if _DIRECTIVE_RE.match(line):
+                assert line in out_lines, (
+                    f"directive marker line missing from output: {line!r}"
+                )
+
+    def assert_section_underlines_preserved(self, src, out):
+        """Assert every section underline/overline line in src appears in out."""
+        out_lines = set(out.splitlines())
+        for line in src.splitlines():
+            if _UNDERLINE_RE.match(line):
+                assert line in out_lines, (
+                    f"section underline line missing from output: {line!r}"
+                )
