@@ -13,8 +13,8 @@ import pytest
 from rst_wrap_lines import WIDTH
 from rst_wrap_lines import wrap_rst
 
-from . import _has_bare_double_space
 from . import BaseTest
+from . import has_bare_double_space
 
 CLONE_DIR = Path("/tmp/rst-wrap-lines-cpython")
 REPO_URL = "https://github.com/python/cpython"
@@ -84,7 +84,7 @@ class TestCPythonDocs(BaseTest):
                     continue  # verbatim passthrough -- OK
                 if line.startswith((" ", "\t", "..")):
                     continue  # indented or directive line -- skip
-                if _has_bare_double_space(line):
+                if has_bare_double_space(line):
                     failures.append(
                         f"{path.name}: tool-produced line has bare"
                         f" double-space: {line!r:.100}"
