@@ -201,47 +201,45 @@ _DIRECTIVE_RE = re.compile(r"^\.\.\s+(?:[\w-]+:)?([\w-]+)::")
 # Directives whose body is prose (and therefore wrappable). Anything
 # not in this set is treated as opaque -- we don't know its content
 # model, so we pass the body through verbatim.
-_PROSE_BODY_DIRECTIVES = frozenset(
-    {
-        # Python/Sphinx domain object descriptions
-        "class",
-        "method",
-        "function",
-        "attribute",
-        "data",
-        "exception",
-        "classmethod",
-        "staticmethod",
-        "decorator",
-        "decoratormethod",
-        "module",
-        "currentmodule",
-        "describe",
-        "object",
-        # Admonitions
-        "note",
-        "warning",
-        "admonition",
-        "attention",
-        "caution",
-        "danger",
-        "error",
-        "hint",
-        "important",
-        "tip",
-        "seealso",
-        # Versioning
-        "versionadded",
-        "versionchanged",
-        "deprecated",
-        "versionremoved",
-        # Generic prose containers
-        "topic",
-        "sidebar",
-        "rubric",
-        "container",
-    }
-)
+_PROSE_BODY_DIRECTIVES = frozenset({
+    # Python/Sphinx domain object descriptions
+    "class",
+    "method",
+    "function",
+    "attribute",
+    "data",
+    "exception",
+    "classmethod",
+    "staticmethod",
+    "decorator",
+    "decoratormethod",
+    "module",
+    "currentmodule",
+    "describe",
+    "object",
+    # Admonitions
+    "note",
+    "warning",
+    "admonition",
+    "attention",
+    "caution",
+    "danger",
+    "error",
+    "hint",
+    "important",
+    "tip",
+    "seealso",
+    # Versioning
+    "versionadded",
+    "versionchanged",
+    "deprecated",
+    "versionremoved",
+    # Generic prose containers
+    "topic",
+    "sidebar",
+    "rubric",
+    "container",
+})
 
 # Simple-table border: two or more runs of '=' (or '-') separated by
 # spaces, nothing else. E.g. "===  ====  =====" or "--- --- ---".
@@ -326,11 +324,17 @@ def _handle_directive(lines, i, n, width):
             if ln.strip():
                 indent = _leading_ws(ln)
                 break
-        if indent and all(not ln.strip() or ln.startswith(indent) for ln in body):
-            dedented = "\n".join(ln[len(indent) :] if ln.strip() else "" for ln in body)
+        if indent and all(
+            not ln.strip() or ln.startswith(indent) for ln in body
+        ):
+            dedented = "\n".join(
+                ln[len(indent) :] if ln.strip() else "" for ln in body
+            )
             sub_width = max(1, width - len(indent))
             wrapped = wrap_rst(dedented, sub_width)
-            emitted.extend(indent + ln if ln else "" for ln in wrapped.split("\n"))
+            emitted.extend(
+                indent + ln if ln else "" for ln in wrapped.split("\n")
+            )
         else:
             emitted.extend(body)
     else:
@@ -529,7 +533,11 @@ def wrap_rst(source, width=WIDTH):
         # Definition-list term: unindented line immediately followed by
         # an indented line with no blank between. Wrapping the term
         # would create two separate terms in the parsed document.
-        if i + 1 < n and lines[i + 1][:1] in {" ", "\t"} and lines[i + 1].strip():
+        if (
+            i + 1 < n
+            and lines[i + 1][:1] in {" ", "\t"}
+            and lines[i + 1].strip()
+        ):
             out.append(raw)
             i += 1
             continue
