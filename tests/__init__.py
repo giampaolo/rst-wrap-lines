@@ -81,7 +81,9 @@ class BaseTest:
             ), f"tool-produced line has trailing whitespace: {line!r}"
 
     def assert_no_double_space_in_list_items(self, src, out):
-        """Assert no tool-produced list-item line contains bare double spaces."""
+        """Assert no tool-produced list-item line contains bare double
+        spaces.
+        """
         src_line_set = set(src.splitlines())
         for line in out.splitlines():
             if line in src_line_set:
@@ -123,7 +125,9 @@ class BaseTest:
                 ), f"directive marker line missing from output: {line!r}"
 
     def assert_section_underlines_preserved(self, src, out):
-        """Assert every section underline/overline line in src appears in out."""
+        """Assert every section underline/overline line in src appears
+        in out.
+        """
         out_lines = set(out.splitlines())
         for line in src.splitlines():
             if _UNDERLINE_RE.match(line):

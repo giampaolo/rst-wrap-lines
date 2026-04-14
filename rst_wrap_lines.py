@@ -68,6 +68,7 @@ from pathlib import Path
 WIDTH = 79
 CHECK = False
 DIFF = False
+VERBOSE = False
 PATHS = []
 
 
@@ -636,7 +637,7 @@ def _process_file(path):
 
 
 def parse_cli():
-    global WIDTH, CHECK, DIFF, PATHS
+    global WIDTH, CHECK, DIFF, PATHS, VERBOSE
 
     parser = argparse.ArgumentParser(
         description="Wrap RST prose paragraphs to a max line length."
@@ -664,11 +665,15 @@ def parse_cli():
         type=Path,
         help="one or more .rst files or directories to format",
     )
+    parser.add_argument(
+        '--verbose', '-v', action='store_true', help="print more info"
+    )
     args = parser.parse_args()
     WIDTH = args.width
     CHECK = args.check
     DIFF = args.diff
     PATHS = args.paths
+    VERBOSE = args.verbose
 
 
 def main():
@@ -676,6 +681,8 @@ def main():
     any_changed = False
     for path in PATHS:
         for rst_file in _collect_rst_files(path):
+            if VERBOSE:
+                print(f"checking {rst_file}")
             if _process_file(rst_file):
                 any_changed = True
     if CHECK and any_changed:
