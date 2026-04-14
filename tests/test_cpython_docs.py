@@ -2,8 +2,8 @@
 
 The CPython repo is cloned once (sparse, Doc/ only) into a temp
 directory and reused across runs. The clone is triggered at module
-import time so that the parametrize list for TestZDocutils is
-available at collection time (required for pytest-xdist).
+import time, so that the parametrize list for tests is available at
+collection time and can be parallelized (pytest-xdist).
 """
 
 import difflib
@@ -134,7 +134,6 @@ def _doctree_str(text):
     return tree.pformat()
 
 
-@pytest.mark.slow
 class TestDocutils(BaseTest):
     """Verify that wrap_rst() does not alter the docutils document tree.
 

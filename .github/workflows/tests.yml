@@ -18,5 +18,4 @@ jobs:
     - name: Run tests
       run: |
         pip install .[test]
-        make test
-        make test-slow
+        make test-parallel

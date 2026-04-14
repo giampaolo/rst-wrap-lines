@@ -23,8 +23,8 @@ clean:  ## Remove all build/temp files.
 test:  ## Run tests.
 	$(PYTHON) -m pytest $(ARGS)
 
-test-slow:  ## Run slow tests (parallel).
-	$(MAKE) test ARGS="-m slow -n auto"
+test-parallel:  ## Run all tests in parallel.
+	$(MAKE) test ARGS="-n auto" $(ARGS)
 
 _ls = $(if $(FILES), printf '%s\n' $(FILES), git ls-files $(1))
 
