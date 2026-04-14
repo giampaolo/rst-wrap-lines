@@ -4,6 +4,7 @@ Currently includes:
 - Local regression fixtures (tests/rst/, always present)
 - CPython documentation (Doc/, ~600 files)
 - Sphinx documentation (doc/, ~100 files)
+- SQLAlchemy documentation (doc/build/)
 
 Each .rst file is a separate parametrized test item, so that
 pytest-xdist can distribute them across workers.
@@ -31,6 +32,7 @@ from . import BaseTest
 from . import has_bare_double_space
 from .conftest import CLONE_DIR
 from .conftest import SPHINX_CLONE_DIR
+from .conftest import SQLALCHEMY_CLONE_DIR
 
 _LOCAL_RST_DIR = pathlib.Path(__file__).parent / "rst"
 
@@ -38,6 +40,7 @@ _SOURCES = [
     (_LOCAL_RST_DIR, "local"),
     (CLONE_DIR / "Doc", "cpython"),
     (SPHINX_CLONE_DIR / "doc", "sphinx"),
+    (SQLALCHEMY_CLONE_DIR / "doc" / "build", "sqlalchemy"),
 ]
 
 # Build (path, id_string) pairs so that files with the same name from

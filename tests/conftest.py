@@ -3,6 +3,7 @@ import subprocess
 
 CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-cpython")
 SPHINX_CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-sphinx")
+SQLALCHEMY_CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-sqlalchemy")
 
 _REPOS = [
     {
@@ -16,6 +17,12 @@ _REPOS = [
         "clone_dir": SPHINX_CLONE_DIR,
         "branch": "master",
         "sparse_dir": "doc/",
+    },
+    {
+        "url": "https://github.com/sqlalchemy/sqlalchemy",
+        "clone_dir": SQLALCHEMY_CLONE_DIR,
+        "branch": "main",
+        "sparse_dir": "doc/build/",
     },
 ]
 

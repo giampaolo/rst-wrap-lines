@@ -426,7 +426,26 @@ def _handle_list_run(lines, i, n, width):
         next_raw = lines[j] if j < n else ""
         next_indent = len(next_raw) - len(next_raw.lstrip(" "))
         visually_attached = bool(next_raw.strip()) and next_indent > text_col
-        if all(len(ln) <= width for ln in original) or visually_attached:
+        # Prose-ambiguity guard (enum lists only): a numbered marker
+        # followed by a non-blank line at the list's own indent (less
+        # than text_col) that is not a sibling list item is parsed by
+        # docutils as a paragraph starting with "N.", not as an enum
+        # list. Bullet lists don't have this ambiguity -- docutils
+        # always parses ``*``/``-``/``+`` as a list. Wrapping in the
+        # ambiguous case would create a well-formed enum list and
+        # change the doctree; keep verbatim instead.
+        nxt_li = _match_list_item(next_raw)
+        prose_ambiguity = (
+            bullet not in {"-", "*", "+"}
+            and bool(next_raw.strip())
+            and next_indent == len(list_indent)
+            and not (nxt_li and nxt_li[0] == list_indent)
+        )
+        if (
+            all(len(ln) <= width for ln in original)
+            or visually_attached
+            or prose_ambiguity
+        ):
             emitted.extend(original)
         else:
             initial = indent + bullet + " "
