@@ -45,7 +45,8 @@ Options:
 - Section titles and underlines
 - Comments, hyperlink targets, substitution definitions
 - Field lists (`:param foo:`, `:type bar:`)
-- Definition list terms
+- Definition list terms and their bodies
+- Option list items (`-x`, `--foo`)
 - Block quotes
 
 Inline RST constructs that contain internal whitespace (`` ``like this`` ``,

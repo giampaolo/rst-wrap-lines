@@ -54,7 +54,8 @@ def clone_cpython_repo():
 class TestCPythonDocs(BaseTest):
     """Run wrap_rst() against every .rst file in the CPython docs and
     verify basic invariants: idempotency, no tool-produced line exceeds
-    the target width, no bare double-space in tool-produced prose."""
+    the target width, no bare double-space in tool-produced prose.
+    """
 
     @classmethod
     def setup_class(cls):

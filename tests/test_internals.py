@@ -239,6 +239,19 @@ class TestPassthrough(BaseTest):
         assert out == src
         self.check_all(src, out)
 
+    def test_option_list_unchanged(self):
+        # Option list items must not be merged into a prose paragraph.
+        src = "-f FILE  Input file.\n-o FILE  Output file.\n"
+        out = self.wrap(src)
+        assert out == src
+        self.check_all(src, out)
+
+    def test_option_list_long_option_unchanged(self):
+        src = "--output FILE  The output file.\n--verbose      Enable verbose mode.\n"
+        out = self.wrap(src)
+        assert out == src
+        self.check_all(src, out)
+
 
 class TestDirectives(BaseTest):
     def test_opaque_directive_body_verbatim(self):

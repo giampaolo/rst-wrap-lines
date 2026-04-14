@@ -42,7 +42,9 @@ Additionally:
 
 - Definition-list terms are passed through verbatim -- wrapping would
   split one term across two unindented lines, producing two terms in
-  the parsed document.
+  the parsed document.  The definition body is indented and therefore
+  also passed through verbatim by the indented-block rule above.
+- Option list items (``-x``, ``--foo``) are passed through verbatim.
 - Tables (both grid and simple) are passed through verbatim.
 
 This tool is a minimal-diff wrapper for prose paragraphs, not a
@@ -68,7 +70,6 @@ from pathlib import Path
 WIDTH = 79
 CHECK = False
 DIFF = False
-VERBOSE = False
 PATHS = set()
 
 IGNORED_DIRS = frozenset([
@@ -296,6 +297,11 @@ def _is_underline(line):
 # a backtick, not a space).
 _FIELD_LIST_RE = re.compile(r"^:[^`:\n]+:(?:\s|$)")
 
+# RST option list item: short option (-x, -x ARG) or long option
+# (--foo, --foo=ARG, --foo ARG).  Two or more spaces separate the
+# option(s) from the description on the same line.
+_OPTION_LIST_RE = re.compile(r"^(-[a-zA-Z0-9]|--[a-zA-Z0-9][-a-zA-Z0-9]*)(\s|$)")
+
 
 def _match_list_item(line):
     """Return (indent_str, bullet_str, rest) or None."""
@@ -458,6 +464,8 @@ def _handle_prose(lines, i, n, width):
             break
         if _FIELD_LIST_RE.match(nxt):
             break
+        if _OPTION_LIST_RE.match(nxt):
+            break
         # A standalone '::' introduces a literal block and must stay on
         # its own line -- merging it turns '::' into ':' in the output.
         if nxt.strip() == "::":
@@ -539,6 +547,12 @@ def wrap_rst(source, width=WIDTH):
             i += 1
             continue
 
+        # Option list item (e.g. '-f FILE', '--output FILE').
+        if _OPTION_LIST_RE.match(raw):
+            out.append(raw)
+            i += 1
+            continue
+
         # Grid table row or line-block.
         if stripped[0] in "+|":
             out.append(raw)
@@ -561,7 +575,9 @@ def wrap_rst(source, width=WIDTH):
 
         # Definition-list term: unindented line immediately followed by
         # an indented line with no blank between. Wrapping the term
-        # would create two separate terms in the parsed document.
+        # would create two separate terms in the parsed document. The
+        # body (indented lines) is handled verbatim by the indented-
+        # block branch above.
         if (
             i + 1 < n
             and lines[i + 1][:1] in {" ", "\t"}
@@ -634,7 +650,7 @@ def _process_file(path):
 
 
 def parse_cli(args=None):
-    global WIDTH, CHECK, DIFF, PATHS, VERBOSE
+    global WIDTH, CHECK, DIFF, PATHS
 
     parser = argparse.ArgumentParser(
         description="Wrap RST prose paragraphs to a max line length."
@@ -662,14 +678,10 @@ def parse_cli(args=None):
         type=Path,
         help="one or more .rst files or directories to format",
     )
-    parser.add_argument(
-        "--verbose", "-v", action="store_true", help="print more info"
-    )
     args = parser.parse_args(args)
     WIDTH = args.width
     CHECK = args.check
     DIFF = args.diff
-    VERBOSE = args.verbose
 
     collected = set()
     for path in args.paths:
@@ -682,8 +694,6 @@ def main(args=None):
 
     any_changed = False
     for path in PATHS:
-        if VERBOSE:
-            print(f"checking {path}")
         if _process_file(path):
             any_changed = True
 
