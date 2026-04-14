@@ -29,6 +29,7 @@ clean:  ## Remove all build/temp files.
 # ===================================================================
 
 test:  ## Run tests.
+	$(PYTHON) -m pip install -e ".[test]" --quiet
 	$(PYTHON) -m pytest $(ARGS)
 
 # ===================================================================

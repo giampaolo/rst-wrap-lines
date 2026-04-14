@@ -7,6 +7,9 @@ name = "rst-wrap-lines"
 version = "0.1.0"
 requires-python = ">=3.9"
 
+[project.optional-dependencies]
+test = ["pytest", "pytest-xdist"]
+
 [project.scripts]
 rst-wrap-lines = "rst_wrap_lines:main"
 
