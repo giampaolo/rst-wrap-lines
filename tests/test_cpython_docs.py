@@ -20,31 +20,35 @@ CLONE_DIR = Path("/tmp/rst-wrap-lines-cpython")
 REPO_URL = "https://github.com/python/cpython"
 
 
+def clone_cpython_repo():
+    if not CLONE_DIR.exists():
+        subprocess.run(
+            [
+                "git",
+                "clone",
+                "--filter=blob:none",
+                "--sparse",
+                "--branch",
+                "main",
+                "--single-branch",
+                "--depth",
+                "1",
+                REPO_URL,
+                str(CLONE_DIR),
+            ],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "sparse-checkout", "set", "Doc/"],
+            cwd=CLONE_DIR,
+            check=True,
+        )
+
+
 class TestCPythonDocs(BaseTest):
     @classmethod
     def setup_class(cls):
-        if not CLONE_DIR.exists():
-            subprocess.run(
-                [
-                    "git",
-                    "clone",
-                    "--filter=blob:none",
-                    "--sparse",
-                    "--branch",
-                    "main",
-                    "--single-branch",
-                    "--depth",
-                    "1",
-                    REPO_URL,
-                    str(CLONE_DIR),
-                ],
-                check=True,
-            )
-            subprocess.run(
-                ["git", "sparse-checkout", "set", "Doc/"],
-                cwd=CLONE_DIR,
-                check=True,
-            )
+        clone_cpython_repo()
 
     def test_all(self):
         failures = []
@@ -95,3 +99,12 @@ class TestCPythonDocs(BaseTest):
 
         if failures:
             pytest.fail("\n".join(failures))
+
+
+class TestAgainstSphinx(BaseTest):
+    @classmethod
+    def setup_class(cls):
+        clone_cpython_repo()
+
+    def test_it(self):
+        pass
