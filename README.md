@@ -54,11 +54,17 @@ Inline RST constructs that contain internal whitespace (`` ``like this`` ``,
 as atomic tokens and never broken across lines. Spaces inside inline constructs
 are left intact.
 
-## Tested against CPython docs
+## Tested against real-world docs
 
-The test suite runs against all ~600 `.rst` files in the
-[CPython documentation](https://github.com/python/cpython/tree/main/Doc)
-and verifies:
+The integration test suite runs against a large corpus of real-world `.rst`
+files (~1,800 in total) from several upstream projects:
+
+- [CPython](https://github.com/python/cpython/tree/main/Doc) (~550 files)
+- [Sphinx](https://github.com/sphinx-doc/sphinx/tree/master/doc) (~160 files)
+- [SQLAlchemy](https://github.com/sqlalchemy/sqlalchemy/tree/main/doc/build) (~200 files)
+- [pytest](https://github.com/pytest-dev/pytest/tree/main/doc/en) (~260 files)
+
+For every file the suite verifies:
 
 - **Idempotency** — running the tool twice produces the same output as
   running it once.
@@ -75,10 +81,14 @@ and verifies:
 ## Development
 
 ```
-make test
-make lint-all
-make fix-all
+make test                # run all tests
+make test-parallel       # same, in parallel (faster)
+make lint-all            # ruff + black (check-only)
+make fix-all             # auto-apply formatter and lint fixes
 ```
+
+The first test run clones the external doc repos (sparse, shallow) into
+`/tmp/rst-wrap-lines-<project>/` and reuses them on subsequent runs.
 
 ## License
 
