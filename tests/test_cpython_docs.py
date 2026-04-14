@@ -1,8 +1,9 @@
 """Tests running wrap_rst() against the CPython documentation.
 
 The CPython repo is cloned once (sparse, Doc/ only) into a temp
-directory and reused across runs. The clone only happens when this
-test class is collected.
+directory and reused across runs. The clone is triggered at module
+import time so that the parametrize list for TestZDocutils is
+available at collection time (required for pytest-xdist).
 """
 
 import difflib
@@ -27,28 +28,35 @@ REPO_URL = "https://github.com/python/cpython"
 
 
 def clone_cpython_repo():
-    if not CLONE_DIR.exists():
-        subprocess.run(
-            [
-                "git",
-                "clone",
-                "--filter=blob:none",
-                "--sparse",
-                "--branch",
-                "main",
-                "--single-branch",
-                "--depth",
-                "1",
-                REPO_URL,
-                str(CLONE_DIR),
-            ],
-            check=True,
-        )
-        subprocess.run(
-            ["git", "sparse-checkout", "set", "Doc/"],
-            cwd=CLONE_DIR,
-            check=True,
-        )
+    if CLONE_DIR.exists():
+        return
+    subprocess.run(
+        [
+            "git",
+            "clone",
+            "--filter=blob:none",
+            "--sparse",
+            "--branch",
+            "main",
+            "--single-branch",
+            "--depth",
+            "1",
+            REPO_URL,
+            str(CLONE_DIR),
+        ],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "sparse-checkout", "set", "Doc/"],
+        cwd=CLONE_DIR,
+        check=True,
+    )
+
+
+# Clone at import time (if needed) so DOC_DIR exists when pytest builds
+# the parametrize list below.
+clone_cpython_repo()
+_RST_FILES = sorted(DOC_DIR.rglob("*.rst"))
 
 
 class TestCPythonDocs(BaseTest):
@@ -57,13 +65,9 @@ class TestCPythonDocs(BaseTest):
     the target width, no bare double-space in tool-produced prose.
     """
 
-    @classmethod
-    def setup_class(cls):
-        clone_cpython_repo()
-
     def test_all(self):
         failures = []
-        rst_files = sorted((DOC_DIR).rglob("*.rst"))
+        rst_files = _RST_FILES
         assert rst_files, f"no .rst files found under {DOC_DIR}"
         for path in rst_files:
             src = path.read_text(encoding="utf-8")
@@ -148,37 +152,29 @@ def _doctree_str(text):
 class TestZDocutils(BaseTest):
     """Verify that wrap_rst() does not alter the docutils document tree.
 
-    For every .rst file in the CPython docs, parse both the original and
-    the wrapped version with docutils and compare the resulting trees
-    (after normalising intra-node whitespace).  A difference means the
-    tool changed something structural, not just prose line lengths.
+    Each .rst file in the CPython docs is a separate parametrized test
+    item so that pytest-xdist can distribute them across workers.  Parse
+    both the original and the wrapped version with docutils and compare
+    the resulting trees (after normalising intra-node whitespace).  A
+    difference means the tool changed something structural, not just
+    prose line lengths.
     """
 
-    @classmethod
-    def setup_class(cls):
-        clone_cpython_repo()
-
-    def test_doctree_unchanged(self):
-        failures = []
-        rst_files = sorted(DOC_DIR.rglob("*.rst"))
-        assert rst_files, f"no .rst files found under {DOC_DIR}"
-        for path in rst_files:
-            src = path.read_text(encoding="utf-8")
-            out = wrap_rst(src)
-            if src == out:
-                continue
-            s1 = _doctree_str(src)
-            s2 = _doctree_str(out)
-            if s1 != s2:
-                diff = difflib.unified_diff(
-                    s1.splitlines(),
-                    s2.splitlines(),
-                    fromfile=f"{path.name} (original)",
-                    tofile=f"{path.name} (wrapped)",
-                    lineterm="",
-                    n=2,
-                )
-                print(diff)
-                failures.append("\n".join(diff))
-        if failures:
-            pytest.fail("\n\n".join(failures))
+    @pytest.mark.parametrize("path", _RST_FILES, ids=lambda p: p.name)
+    def test_doctree_unchanged(self, path):
+        src = path.read_text(encoding="utf-8")
+        out = wrap_rst(src)
+        if src == out:
+            return
+        s1 = _doctree_str(src)
+        s2 = _doctree_str(out)
+        if s1 != s2:
+            diff = difflib.unified_diff(
+                s1.splitlines(),
+                s2.splitlines(),
+                fromfile=f"{path.name} (original)",
+                tofile=f"{path.name} (wrapped)",
+                lineterm="",
+                n=2,
+            )
+            pytest.fail("\n".join(diff))
