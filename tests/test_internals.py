@@ -1,9 +1,9 @@
 """Tests for rst_wrap_lines.wrap_rst()."""
 
-from . import InternalBaseTest
+from . import BaseTest
 
 
-class TestProseParagraphs(InternalBaseTest):
+class TestProseParagraphs(BaseTest):
     def test_long_paragraph_is_wrapped(self):
         src = (
             "This is a very long prose paragraph that clearly exceeds"
@@ -94,7 +94,7 @@ class TestProseParagraphs(InternalBaseTest):
         self.check_all(src, out)
 
 
-class TestPassthrough(InternalBaseTest):
+class TestPassthrough(BaseTest):
     def test_section_title_unchanged(self):
         src = "My Section\n==========\n"
         out = self.wrap(src)
@@ -164,7 +164,7 @@ class TestPassthrough(InternalBaseTest):
         self.check_all(src, out)
 
 
-class TestDirectives(InternalBaseTest):
+class TestDirectives(BaseTest):
     def test_opaque_directive_body_verbatim(self):
         # code-block is not in _PROSE_BODY_DIRECTIVES; body must pass
         # through byte-identical even if lines are long.
@@ -214,7 +214,7 @@ class TestDirectives(InternalBaseTest):
         self.check_all(src, out)
 
 
-class TestInlineMarkup(InternalBaseTest):
+class TestInlineMarkup(BaseTest):
     def test_inline_literal_not_broken(self):
         src = "Prose with ``an inline literal that has spaces inside`` here.\n"
         out = self.wrap(src)
@@ -271,7 +271,7 @@ class TestInlineMarkup(InternalBaseTest):
         self.check_all(src, out)
 
 
-class TestListItems(InternalBaseTest):
+class TestListItems(BaseTest):
     def test_long_bullet_item_wrapped(self):
         src = (
             "- This bullet item is quite long and should be wrapped"

@@ -14,13 +14,13 @@ from rst_wrap_lines import WIDTH
 from rst_wrap_lines import wrap_rst
 
 from . import _has_bare_double_space
-from . import InternalBaseTest
+from . import BaseTest
 
 CLONE_DIR = Path("/tmp/rst-wrap-lines-cpython")
 REPO_URL = "https://github.com/python/cpython"
 
 
-class TestCPythonDocs(InternalBaseTest):
+class TestCPythonDocs(BaseTest):
     @classmethod
     def setup_class(cls):
         if not CLONE_DIR.exists():

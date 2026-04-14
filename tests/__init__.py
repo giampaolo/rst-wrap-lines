@@ -31,7 +31,7 @@ def _has_bare_double_space(line):
     return "  " in _INLINE_MASK_RE.sub("X", line)
 
 
-class InternalBaseTest:
+class BaseTest:
     WIDTH = 79
 
     def wrap(self, source, width=None):
