@@ -140,5 +140,4 @@ ignore = [
 "tests/*" = ["B904", "EM101", "EM102", "EM103", "PLC1901", "RUF069", "TRY003"]
 
 [tool.ruff.lint.isort]
-# https://beta.ruff.rs/docs/settings/#isort
 force-single-line = true  # one import per line
