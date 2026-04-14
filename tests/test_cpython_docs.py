@@ -1,13 +1,15 @@
-"""Tests run against every .rst file of the CPython documentation (+600
-files).
+"""Tests run against .rst files from multiple external projects.
+
+Currently includes:
+- CPython documentation (Doc/, ~600 files)
+- Sphinx documentation (doc/, ~100 files)
 
 Each .rst file is a separate parametrized test item, so that
 pytest-xdist can distribute them across workers.
 
-The CPython repo is cloned once (sparse, Doc/ only) into a temp
-directory, and reused across runs. This is performed in conftest.py,
-during pytest collection setup, **before** pytest-xdist spawn worker
-processes.
+The repos are cloned once (sparse) into temp directories and reused
+across runs. Cloning is triggered in conftest.py during collection
+setup, **before** pytest-xdist spawns worker processes.
 """
 
 import difflib
@@ -23,19 +25,34 @@ from rst_wrap_lines import wrap_rst
 from . import BaseTest
 from . import has_bare_double_space
 from .conftest import CLONE_DIR
+from .conftest import SPHINX_CLONE_DIR
 
-DOC_DIR = CLONE_DIR / "Doc"
-RST_FILES = sorted(DOC_DIR.rglob("*.rst"))
-assert RST_FILES
+_SOURCES = [
+    (CLONE_DIR / "Doc", "cpython"),
+    (SPHINX_CLONE_DIR / "doc", "sphinx"),
+]
+
+# Build (path, id_string) pairs so that files with the same name from
+# different repos get distinct parametrize ids (e.g. "cpython/index.rst"
+# vs "sphinx/index.rst").
+_RST_FILE_PARAMS = [
+    pytest.param(path, id=f"{label}/{path.name}")
+    for doc_dir, label in _SOURCES
+    for path in sorted(doc_dir.rglob("*.rst"))
+]
+assert _RST_FILE_PARAMS
+
+# Plain list used where only the paths are needed.
+RST_FILES = [p.values[0] for p in _RST_FILE_PARAMS]
 
 
 class TestCPythonDocs(BaseTest):
-    """Run wrap_rst() against every .rst file and verify basic
-    invariants: idempotency, no tool-produced line exceeds the target
-    width, no bare double-space in tool-produced prose.
+    """Run wrap_rst() against every collected .rst file and verify
+    basic invariants: idempotency, no tool-produced line exceeds the
+    target width, no bare double-space in tool-produced prose.
     """
 
-    @pytest.mark.parametrize("path", RST_FILES, ids=lambda p: p.name)
+    @pytest.mark.parametrize("path", _RST_FILE_PARAMS)
     def test_all(self, path):
         src = path.read_text(encoding="utf-8")
         out = wrap_rst(src)
@@ -113,7 +130,7 @@ class TestDocutils(BaseTest):
     structural, not just prose line lengths.
     """
 
-    @pytest.mark.parametrize("path", RST_FILES, ids=lambda p: p.name)
+    @pytest.mark.parametrize("path", _RST_FILE_PARAMS)
     def test_doctree_unchanged(self, path):
         src = path.read_text(encoding="utf-8")
         out = wrap_rst(src)

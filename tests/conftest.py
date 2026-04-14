@@ -1,19 +1,32 @@
 import pathlib
 import subprocess
 
-REPO_URL = "https://github.com/python/cpython"
 CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-cpython")
+SPHINX_CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-sphinx")
+
+_REPOS = [
+    {
+        "url": "https://github.com/python/cpython",
+        "clone_dir": CLONE_DIR,
+        "branch": "main",
+        "sparse_dir": "Doc/",
+    },
+    {
+        "url": "https://github.com/sphinx-doc/sphinx",
+        "clone_dir": SPHINX_CLONE_DIR,
+        "branch": "master",
+        "sparse_dir": "doc/",
+    },
+]
 
 
-def clone_cpython_repo():
-    """The CPython repo is cloned once (sparse, Doc/ only) into a temp
-    directory and reused across runs. This clone is triggered here,
-    before pytest-xdist spawns processes, so that the parametrize list
-    for tests is available at collection time and can be parallelized.
+def _clone_repo(url, clone_dir, branch, sparse_dir):
+    """Clone *url* into *clone_dir* (sparse, *sparse_dir* only).
+
+    Skipped if the directory already exists.
     """
-    if CLONE_DIR.exists():
+    if clone_dir.exists():
         return
-
     subprocess.run(
         [
             "git",
@@ -21,24 +34,28 @@ def clone_cpython_repo():
             "--filter=blob:none",
             "--sparse",
             "--branch",
-            "main",
+            branch,
             "--single-branch",
             "--depth",
             "1",
-            REPO_URL,
-            str(CLONE_DIR),
+            url,
+            str(clone_dir),
         ],
         check=True,
     )
     subprocess.run(
-        ["git", "sparse-checkout", "set", "Doc/"],
-        cwd=CLONE_DIR,
+        ["git", "sparse-checkout", "set", sparse_dir],
+        cwd=clone_dir,
         check=True,
     )
 
 
 def pytest_sessionstart(session):
-    clone_cpython_repo()
+    """Clone all external repos before collection so that parametrize
+    lists are available when pytest-xdist spawns workers.
+    """
+    for repo in _REPOS:
+        _clone_repo(**repo)
 
 
 def pytest_collection_modifyitems(config, items):
