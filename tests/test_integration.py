@@ -54,7 +54,7 @@ assert _RST_FILE_PARAMS
 RST_FILES = [p.values[0] for p in _RST_FILE_PARAMS]
 
 
-class TestCPythonDocs(BaseTest):
+class TestCorpus(BaseTest):
     """Run wrap_rst() against every collected .rst file and verify
     basic invariants: idempotency, no tool-produced line exceeds the
     target width, no bare double-space in tool-produced prose.
