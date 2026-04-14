@@ -55,10 +55,21 @@ are left intact.
 
 ## Tested against CPython docs
 
-This tool is successfully tested against all 548 `.rst` files in the
-[CPython documentation](https://github.com/python/cpython/tree/main/Doc).
-The test suite verifies idempotency, no tool-produced line exceeds the
-target width, and no bare double spaces appear in tool-produced prose.
+The test suite runs against all ~600 `.rst` files in the
+[CPython documentation](https://github.com/python/cpython/tree/main/Doc)
+and verifies:
+
+- **Idempotency** — running the tool twice produces the same output as
+  running it once.
+- **Width** — no tool-produced line exceeds the target width (verbatim
+  passthrough of already-long source lines is allowed).
+- **No double spaces** — no tool-produced prose line contains a bare
+  double space.
+- **Document tree invariant** — parsing the original and the wrapped
+  file with [docutils](https://docutils.sourceforge.io/) produces
+  identical document trees (after normalising intra-node whitespace).
+  This confirms that rewrapping prose never alters headings, directives,
+  code blocks, hyperlinks, or any other structural element.
 
 ## Development
 
