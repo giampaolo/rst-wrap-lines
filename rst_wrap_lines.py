@@ -699,6 +699,7 @@ def wrap_rst(source, width=WIDTH, join=False):
             not out
             or not out[-1].strip()
             or _is_underline(out[-1])
+            or _is_short_underline(out[-1])
             or out[-1][:1] in {" ", "\t"}
         )
         if at_block_start and _match_list_item(raw):
