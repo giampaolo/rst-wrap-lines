@@ -85,7 +85,9 @@ class BaseTest:
         """Assert no tool-produced list-item line contains bare double
         spaces.
         """
-        src_line_set = set(src.splitlines())
+        # The tool strips trailing whitespace, so verbatim-passthrough
+        # matches must be done against rstrip'd source lines.
+        src_line_set = {ln.rstrip() for ln in src.splitlines()}
         for line in out.splitlines():
             if line in src_line_set:
                 continue

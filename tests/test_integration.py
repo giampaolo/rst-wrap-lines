@@ -75,7 +75,10 @@ class TestCorpus(BaseTest):
     def test_all(self, path):
         src = path.read_text(encoding="utf-8")
         out = wrap_rst(src, join=self.JOIN)
-        src_line_set = set(src.splitlines())
+        # The tool strips trailing whitespace on every line, so a
+        # "verbatim passthrough" output line matches the source only
+        # after rstrip'ing.
+        src_line_set = {ln.rstrip() for ln in src.splitlines()}
 
         # 1. idempotency
         assert wrap_rst(out, join=self.JOIN) == out, "not idempotent"

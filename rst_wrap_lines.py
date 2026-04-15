@@ -551,7 +551,10 @@ def wrap_rst(source, width=WIDTH, join=False):
     or list item are merged onto one line (up to the target width).
     Default False preserves the existing line breaks.
     """
-    lines = source.splitlines()
+    # Strip trailing whitespace from every line up front. It's never
+    # meaningful in RST (the doctree ignores it) and stripping here
+    # means downstream handlers can't accidentally preserve it.
+    lines = [ln.rstrip() for ln in source.splitlines()]
     out = []
     i = 0
     n = len(lines)

@@ -5,8 +5,9 @@ files to a maximum line length.
 
 Only prose paragraphs and list items are re-wrapped. Everything else
 (directives, literal blocks, tables, section underlines, comments, indented
-blocks) is passed through byte-identical. If a file is already clean, the tool
-produces a zero-byte diff.
+blocks) is passed through unchanged, aside from trailing whitespace which is
+always stripped. If a file is already clean, the tool produces a zero-byte
+diff.
 
 ## Installation
 
@@ -87,6 +88,7 @@ configurable in pyproject.toml — they're run modes, not project policy.
   `.. versionadded::`, `.. class::`, etc.)
 - Double spaces in prose are removed (e.g. `hello  world` → `hello world`),
   even when the paragraph already fits within the target width
+- Trailing whitespace is stripped from every line.
 
 With `--join`, short consecutive lines inside a paragraph are merged onto one
 line (up to the target width). Without the flag, existing line breaks within
@@ -140,7 +142,7 @@ in the style of Black or gofmt. It parses each file into a full docutils
 AST and re-emits a canonical layout from the tree. This project takes the
 opposite approach: source is edited line-by-line with regex-level
 heuristics, and anything the tool can't confidently rewrap is passed
-through byte-identical.
+through unchanged.
 
 |                              | rstfmt                         | rst-wrap-lines                       |
 | ---                          | ---                            | ---                                  |
