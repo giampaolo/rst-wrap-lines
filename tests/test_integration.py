@@ -18,15 +18,12 @@ Adding a regression test: drop a .rst file into tests/rst/ and it
 will be picked up automatically on the next run.
 """
 
-import difflib
 import pathlib
 
-import docutils.nodes
 import pytest
-from docutils.core import publish_doctree
-from docutils.utils import Reporter
 
 from rst_wrap_lines import WIDTH
+from rst_wrap_lines import _doctree_diff
 from rst_wrap_lines import wrap_rst
 
 from . import BaseTest
@@ -108,38 +105,6 @@ class TestCorpus(BaseTest):
         self.check_all(src, out)
 
 
-def _doctree_str(text):
-    """Parse RST and return a normalized document-tree string.
-
-    Whitespace inside text nodes is collapsed so that prose re-wrapping
-    by our tool does not produce false positives.  All other structure
-    (nodes, attributes, nesting) is preserved verbatim.
-    """
-    tree = publish_doctree(
-        text,
-        settings_overrides={
-            # silence stderr noise from Sphinx-specific / unknown directives
-            "report_level": Reporter.SEVERE_LEVEL + 1,
-            "halt_level": Reporter.SEVERE_LEVEL + 1,
-        },
-    )
-    # Remove system_message nodes: they reflect docutils warnings about
-    # Sphinx-specific / unknown directives and parsing ambiguities that
-    # vary with line positions, not document structure.
-    for node in tree.findall(docutils.nodes.system_message):
-        node.parent.remove(node)
-    # Strip source-position attributes: line numbers shift whenever prose
-    # is re-wrapped, so they must not influence the comparison.
-    for node in tree.findall(docutils.nodes.Element):
-        node.attributes.pop("source", None)
-        node.attributes.pop("line", None)
-        node.line = None
-    for node in tree.findall(docutils.nodes.Text):
-        normalized = " ".join(str(node).split())
-        node.parent.replace(node, docutils.nodes.Text(normalized))
-    return tree.pformat()
-
-
 class TestDocutils(BaseTest):
     """Verify that wrap_rst() does not alter the docutils document tree.
 
@@ -160,15 +125,6 @@ class TestDocutils(BaseTest):
         out = wrap_rst(src, join=self.JOIN)
         if src == out:
             return
-        s1 = _doctree_str(src)
-        s2 = _doctree_str(out)
-        if s1 != s2:
-            diff = difflib.unified_diff(
-                s1.splitlines(),
-                s2.splitlines(),
-                fromfile=f"{path.name} (original)",
-                tofile=f"{path.name} (wrapped)",
-                lineterm="",
-                n=2,
-            )
-            pytest.fail("\n".join(diff))
+        diff = _doctree_diff(src, out)
+        if diff is not None:
+            pytest.fail(diff)
