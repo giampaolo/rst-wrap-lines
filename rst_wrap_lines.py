@@ -242,7 +242,7 @@ _ENUM_RE = re.compile(
     r"^(?P<indent>\s*)"
     r"(?P<bullet>"
     r"(?:\d+|[a-zA-Z]|#)[.)]"  # 1. 1) a. #.
-    r"|\(\d+\)"  # (1)
+    r"|\((?:\d+|[a-zA-Z])\)"  # (1) (a) (A)
     r")\s+(?P<rest>.*)$"
 )
 
