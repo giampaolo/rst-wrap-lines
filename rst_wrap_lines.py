@@ -64,6 +64,7 @@ import argparse
 import difflib
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -822,6 +823,74 @@ def _process_stdin():
     )
 
 
+# Options that ``[tool.rst-wrap-lines]`` in pyproject.toml may set,
+# mapped to the type each value must have. ``check`` and ``diff`` are
+# intentionally CLI-only -- they're per-invocation flags, not project
+# policy.
+_VALID_PYPROJECT_KEYS = {
+    "width": int,
+    "join": bool,
+    "safe": bool,
+}
+
+
+def _find_pyproject_toml():
+    """Walk up from CWD looking for pyproject.toml; return Path or None."""
+    cwd = Path.cwd().resolve()
+    for d in (cwd, *cwd.parents):
+        candidate = d / "pyproject.toml"
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _config_error(msg):
+    """Print *msg* to stderr and exit with code 2 (config error)."""
+    print(f"error: {msg}", file=sys.stderr)
+    sys.exit(2)
+
+
+def _load_pyproject_config():
+    """Return validated options from ``[tool.rst-wrap-lines]`` in the
+    nearest pyproject.toml, or an empty dict if none is found.
+
+    Unknown keys and wrong-typed values are fatal: print an error to
+    stderr and exit with code 2. This catches typos early instead of
+    silently ignoring them.
+    """
+    path = _find_pyproject_toml()
+    if path is None:
+        return {}
+    try:
+        with open(path, "rb") as f:
+            data = tomllib.load(f)
+    except (OSError, tomllib.TOMLDecodeError) as e:
+        return _config_error(f"cannot read {path}: {e}")
+    section = data.get("tool", {}).get("rst-wrap-lines", {})
+    valid = {}
+    for k, v in section.items():
+        expected = _VALID_PYPROJECT_KEYS.get(k)
+        if expected is None:
+            valid_keys = ", ".join(sorted(_VALID_PYPROJECT_KEYS))
+            return _config_error(
+                f"unknown key in [tool.rst-wrap-lines] in {path}: {k!r}"
+                f" (valid keys: {valid_keys})"
+            )
+        # bool is a subclass of int -- reject True/False for width.
+        if expected is int and (isinstance(v, bool) or not isinstance(v, int)):
+            return _config_error(
+                f"[tool.rst-wrap-lines].{k} in {path} must be an integer,"
+                f" got {type(v).__name__}"
+            )
+        if expected is bool and not isinstance(v, bool):
+            return _config_error(
+                f"[tool.rst-wrap-lines].{k} in {path} must be a boolean,"
+                f" got {type(v).__name__}"
+            )
+        valid[k] = v
+    return valid
+
+
 def parse_cli(args=None):
     global WIDTH, CHECK, DIFF, JOIN, SAFE, PATHS
 
@@ -847,7 +916,8 @@ def parse_cli(args=None):
     )
     parser.add_argument(
         "--join",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=False,
         help=(
             "merge short consecutive lines inside a paragraph onto one"
             " line, up to the target width"
@@ -855,7 +925,8 @@ def parse_cli(args=None):
     )
     parser.add_argument(
         "--safe",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=False,
         help=(
             "after wrapping, verify with docutils that the output has"
             " the same document tree as the input; refuse to write"
@@ -871,6 +942,11 @@ def parse_cli(args=None):
             " use '-' to read from stdin and write to stdout"
         ),
     )
+    # Apply [tool.rst-wrap-lines] from pyproject.toml as defaults; the
+    # CLI then overrides anything explicitly passed.
+    config = _load_pyproject_config()
+    if config:
+        parser.set_defaults(**config)
     args = parser.parse_args(args)
     WIDTH = args.width
     CHECK = args.check

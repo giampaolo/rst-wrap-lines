@@ -57,6 +57,24 @@ Options:
   This is the integration point for editor formatters (Vim's
   `formatprg`, VS Code formatters, format-on-save plugins, etc.).
 
+## Configuration via pyproject.toml
+
+Project-wide defaults can be set in a `[tool.rst-wrap-lines]` section of
+`pyproject.toml`. The tool walks up from the current working directory
+to find the nearest one. Supported keys:
+
+```toml
+[tool.rst-wrap-lines]
+width = 79     # int
+join = true    # bool
+safe = true    # bool
+```
+
+Command-line flags **override** anything set in `pyproject.toml`. To turn
+off a setting from the CLI for a single run, use the negation flags
+`--no-join` / `--no-safe`. Per-invocation flags (`--check`, `--diff`) are not
+configurable in pyproject.toml — they're run modes, not project policy.
+
 ## What gets wrapped
 
 - Prose paragraphs

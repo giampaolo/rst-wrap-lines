@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rst-wrap-lines"
 version = "0.1.0"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 
 [project.optional-dependencies]
 lint = ["black", "ruff", "toml-sort"]
@@ -42,14 +42,14 @@ markers = [
 ]
 
 [tool.black]
-target-version = ["py39"]
+target-version = ["py311"]
 line-length = 79
 preview = true
 enable-unstable-feature = ["hug_parens_with_braces_and_square_brackets", "string_processing", "wrap_long_dict_values_in_parens"]
 
 [tool.ruff]
 # https://beta.ruff.rs/docs/settings/
-target-version = "py39"
+target-version = "py311"
 line-length = 79
 
 [tool.ruff.lint]

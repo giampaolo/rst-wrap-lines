@@ -167,3 +167,100 @@ class TestSafe:
             rst_wrap_lines.main(["--safe", str(rst)])
         assert exc_info.value.code == 1
         assert rst.read_text(encoding="utf-8") == src
+
+
+class TestPyprojectConfig:
+    """Exercise [tool.rst-wrap-lines] in pyproject.toml: discovery,
+    type validation, unknown-key warning, and CLI override.
+    """
+
+    @pytest.fixture(autouse=True)
+    def isolate_cwd(self, tmp_path, monkeypatch):
+        # Each test runs in its own empty tmp dir so the project's own
+        # pyproject.toml is never picked up by the upward search.
+        self.dir = tmp_path
+        self.rst = tmp_path / "sample.rst"
+        self.rst.write_text("Hello world.\n", encoding="utf-8")
+        monkeypatch.chdir(tmp_path)
+
+    def _write_config(self, body):
+        (self.dir / "pyproject.toml").write_text(
+            f"[tool.rst-wrap-lines]\n{body}\n", encoding="utf-8"
+        )
+
+    def test_no_pyproject_uses_defaults(self):
+        # No pyproject.toml in tmp_path or its parents-up-to-tmp.
+        # /tmp itself has no pyproject.toml so we get plain defaults.
+        rst_wrap_lines.parse_cli([str(self.rst)])
+        assert rst_wrap_lines.WIDTH == 79
+        assert rst_wrap_lines.JOIN is False
+        assert rst_wrap_lines.SAFE is False
+
+    def test_pyproject_sets_width(self):
+        self._write_config("width = 60")
+        rst_wrap_lines.parse_cli([str(self.rst)])
+        assert rst_wrap_lines.WIDTH == 60
+
+    def test_pyproject_sets_join_and_safe(self):
+        self._write_config("join = true\nsafe = true")
+        rst_wrap_lines.parse_cli([str(self.rst)])
+        assert rst_wrap_lines.JOIN is True
+        assert rst_wrap_lines.SAFE is True
+
+    def test_cli_overrides_pyproject_width(self):
+        self._write_config("width = 60")
+        rst_wrap_lines.parse_cli(["--width", "100", str(self.rst)])
+        assert rst_wrap_lines.WIDTH == 100
+
+    def test_cli_no_join_overrides_pyproject_join_true(self):
+        self._write_config("join = true")
+        rst_wrap_lines.parse_cli(["--no-join", str(self.rst)])
+        assert rst_wrap_lines.JOIN is False
+
+    def test_pyproject_walks_up_from_subdir(self, monkeypatch):
+        # Config in parent dir is discovered when CLI runs in a subdir.
+        self._write_config("width = 70")
+        sub = self.dir / "sub"
+        sub.mkdir()
+        monkeypatch.chdir(sub)
+        rst_wrap_lines.parse_cli([str(self.rst)])
+        assert rst_wrap_lines.WIDTH == 70
+
+    def test_pyproject_no_section_ignored(self):
+        # pyproject.toml exists but has no [tool.rst-wrap-lines] section.
+        (self.dir / "pyproject.toml").write_text(
+            "[tool.other]\nfoo = 1\n", encoding="utf-8"
+        )
+        rst_wrap_lines.parse_cli([str(self.rst)])
+        assert rst_wrap_lines.WIDTH == 79
+
+    def test_unknown_key_is_fatal(self, capsys):
+        self._write_config("nonsense = 42")
+        with pytest.raises(SystemExit) as exc_info:
+            rst_wrap_lines.parse_cli([str(self.rst)])
+        assert exc_info.value.code == 2
+        err = capsys.readouterr().err
+        assert "unknown key" in err
+        assert "nonsense" in err
+        # The error message lists the valid keys.
+        assert "width" in err
+        assert "join" in err
+        assert "safe" in err
+
+    def test_wrong_type_is_fatal(self, capsys):
+        # width must be int, not string
+        self._write_config('width = "wide"')
+        with pytest.raises(SystemExit) as exc_info:
+            rst_wrap_lines.parse_cli([str(self.rst)])
+        assert exc_info.value.code == 2
+        err = capsys.readouterr().err
+        assert "must be an integer" in err
+
+    def test_bool_for_int_field_is_fatal(self, capsys):
+        # bool is a subclass of int but should NOT be accepted for width.
+        self._write_config("width = true")
+        with pytest.raises(SystemExit) as exc_info:
+            rst_wrap_lines.parse_cli([str(self.rst)])
+        assert exc_info.value.code == 2
+        err = capsys.readouterr().err
+        assert "must be an integer" in err
