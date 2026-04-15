@@ -57,6 +57,8 @@ Options:
   This is the integration point for editor formatters (Vim's
   `formatprg`, VS Code formatters, format-on-save plugins, etc.).
 
+- `-q`, `--quiet` — suppress informational output.
+
 - `--version` — print the version and exit
 
 ## Configuration via pyproject.toml

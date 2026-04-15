@@ -84,6 +84,33 @@ class TestCLI:
         # File already fits within 79 chars; no SystemExit expected.
         rst_wrap_lines.main(["--check", str(self.rst)])
 
+    # --- --quiet ---
+
+    def test_quiet_suppresses_reformatted_message(self, capsys):
+        long_line = "word " * 20 + "\n"
+        self.rst.write_text(long_line, encoding="utf-8")
+        rst_wrap_lines.main(["--quiet", str(self.rst)])
+        # File was rewritten...
+        assert self.rst.read_text(encoding="utf-8") != long_line
+        # ...but no "reformatted FILE" line was printed.
+        assert "reformatted" not in capsys.readouterr().out
+
+    def test_quiet_suppresses_would_reformat_message(self, capsys):
+        long_line = "word " * 20 + "\n"
+        self.rst.write_text(long_line, encoding="utf-8")
+        with pytest.raises(SystemExit) as exc_info:
+            rst_wrap_lines.main(["--quiet", "--check", str(self.rst)])
+        # Exit code still signals "would change".
+        assert exc_info.value.code == 1
+        # But no "would reformat FILE" line was printed.
+        assert "would reformat" not in capsys.readouterr().out
+
+    def test_quiet_short_alias(self, capsys):
+        long_line = "word " * 20 + "\n"
+        self.rst.write_text(long_line, encoding="utf-8")
+        rst_wrap_lines.main(["-q", str(self.rst)])
+        assert "reformatted" not in capsys.readouterr().out
+
     # --- stdin / stdout ---
 
     def test_stdin_format(self, monkeypatch, capsys):

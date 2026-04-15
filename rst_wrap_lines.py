@@ -83,6 +83,7 @@ CHECK = False
 DIFF = False
 JOIN = False
 SAFE = False
+QUIET = False
 PATHS = set()
 
 IGNORED_DIRS = frozenset([
@@ -798,12 +799,12 @@ def _process(src, *, label, diff_dst_label, write_fn, log_changes):
             )
         return changed, False
     if CHECK:
-        if changed and log_changes:
+        if changed and log_changes and not QUIET:
             print(f"would reformat {label}")
         return changed, False
     if changed:
         write_fn(dst)
-        if log_changes:
+        if log_changes and not QUIET:
             print(f"reformatted {label}")
     return changed, False
 
@@ -899,7 +900,7 @@ def _load_pyproject_config():
 
 
 def parse_cli(args=None):
-    global WIDTH, CHECK, DIFF, JOIN, SAFE, PATHS
+    global WIDTH, CHECK, DIFF, JOIN, SAFE, QUIET, PATHS
 
     parser = argparse.ArgumentParser(
         description="Wrap RST prose paragraphs to a max line length."
@@ -925,6 +926,15 @@ def parse_cli(args=None):
         "--diff",
         action="store_true",
         help="print a unified diff instead of writing files",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help=(
+            "suppress per-file 'reformatted FILE' / 'would reformat FILE'"
+            " messages; errors and diffs are still printed"
+        ),
     )
     parser.add_argument(
         "--join",
@@ -965,6 +975,7 @@ def parse_cli(args=None):
     DIFF = args.diff
     JOIN = args.join
     SAFE = args.safe
+    QUIET = args.quiet
 
     stdin_requested = any(str(p) == "-" for p in args.paths)
     if stdin_requested and len(args.paths) > 1:
