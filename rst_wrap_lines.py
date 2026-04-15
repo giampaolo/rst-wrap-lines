@@ -275,10 +275,12 @@ def _is_short_underline(line):
 
 
 # Field list item: ':field name: value'. Field names may contain spaces
-# (e.g. ':type exc_info:') but never backticks, which distinguishes
-# them from ':role:`text`' inline markup (a role is always followed by
-# a backtick, not a space).
-_FIELD_LIST_RE = re.compile(r"^:[^`:\n]+:(?:\s|$)")
+# (e.g. ':type exc_info:') and inline markup including inline literals
+# (e.g. ':``p_vaddr``: segment virtual address'). Disambiguation from
+# ':role:`text`' inline markup is handled by the trailing ``(?:\s|$)``:
+# a field list has a space (or end of line) after the closing colon,
+# while a role is immediately followed by a backtick.
+_FIELD_LIST_RE = re.compile(r"^:[^:\n]+:(?:\s|$)")
 
 # RST option list item: short option (-x, -x ARG) or long option
 # (--foo, --foo=ARG, --foo ARG).  Two or more spaces separate the
