@@ -999,16 +999,28 @@ def main(args=None):
             sys.exit(1)
         return
 
-    any_changed = False
-    any_safety_failed = False
+    n_changed = 0
+    n_unchanged = 0
+    n_safety_failed = 0
     for path in PATHS:
         changed, safety_failed = _process_file(path)
-        if changed:
-            any_changed = True
         if safety_failed:
-            any_safety_failed = True
+            n_safety_failed += 1
+        elif changed:
+            n_changed += 1
+        else:
+            n_unchanged += 1
 
-    if any_safety_failed or (CHECK and any_changed):
+    # Summary on multi-file runs (skipped under --quiet, --diff, and
+    # for single-file invocations where the per-file output is enough).
+    if len(PATHS) > 1 and not QUIET and not DIFF:
+        verb = "would be reformatted" if CHECK else "reformatted"
+        parts = [f"{n_changed} {verb}", f"{n_unchanged} unchanged"]
+        if n_safety_failed:
+            parts.append(f"{n_safety_failed} skipped (--safe)")
+        print(", ".join(parts) + ".")
+
+    if n_safety_failed or (CHECK and n_changed):
         sys.exit(1)
 
 

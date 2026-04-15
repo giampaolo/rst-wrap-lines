@@ -111,6 +111,54 @@ class TestCLI:
         rst_wrap_lines.main(["-q", str(self.rst)])
         assert "reformatted" not in capsys.readouterr().out
 
+    # --- multi-file summary ---
+
+    def _make_files(self, n_long, n_short):
+        """Create *n_long* over-width and *n_short* short .rst files.
+
+        Returns the list of paths.
+        """
+        long_line = "word " * 20 + "\n"
+        paths = []
+        for i in range(n_long):
+            p = self.dir / f"long{i}.rst"
+            p.write_text(long_line, encoding="utf-8")
+            paths.append(str(p))
+        for i in range(n_short):
+            p = self.dir / f"short{i}.rst"
+            p.write_text("Short.\n", encoding="utf-8")
+            paths.append(str(p))
+        return paths
+
+    def test_summary_multi_file_format_mode(self, capsys):
+        paths = self._make_files(n_long=2, n_short=3)
+        rst_wrap_lines.main(paths)
+        out = capsys.readouterr().out
+        assert "2 reformatted, 3 unchanged." in out
+
+    def test_summary_multi_file_check_mode(self, capsys):
+        paths = self._make_files(n_long=2, n_short=3)
+        with pytest.raises(SystemExit) as exc_info:
+            rst_wrap_lines.main(["--check", *paths])
+        assert exc_info.value.code == 1
+        out = capsys.readouterr().out
+        assert "2 would be reformatted, 3 unchanged." in out
+
+    def test_summary_suppressed_by_quiet(self, capsys):
+        paths = self._make_files(n_long=2, n_short=3)
+        rst_wrap_lines.main(["--quiet", *paths])
+        out = capsys.readouterr().out
+        assert "reformatted" not in out
+        assert "unchanged" not in out
+
+    def test_summary_skipped_for_single_file(self, capsys):
+        paths = self._make_files(n_long=1, n_short=0)
+        rst_wrap_lines.main(paths)
+        out = capsys.readouterr().out
+        # Per-file message appears; aggregate summary does not.
+        assert "reformatted" in out
+        assert "1 reformatted, 0 unchanged" not in out
+
     # --- stdin / stdout ---
 
     def test_stdin_format(self, monkeypatch, capsys):
