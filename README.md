@@ -62,6 +62,45 @@ Options:
 
 - `--version` — print the version and exit
 
+## Editor integration
+
+Because `rst-wrap-lines -` reads from stdin and writes to stdout, any editor
+that can pipe a buffer through an external command can use it as a formatter
+to run on save.
+
+### Vim / Neovim
+
+Add to `~/.vimrc`:
+
+```vim
+autocmd BufWritePre *.rst silent! %!rst-wrap-lines -
+```
+
+### VS Code
+
+With the [Custom Local Formatters](https://marketplace.visualstudio.com/items?itemName=jkillian.custom-local-formatters)
+extension:
+
+```json
+"customLocalFormatters.formatters": [
+  {
+    "command": "rst-wrap-lines -",
+    "languages": ["restructuredtext"]
+  }
+]
+```
+
+### Emacs
+
+```elisp
+(defun rst-wrap-lines-buffer ()
+  (interactive)
+  (let ((p (point)))
+    (shell-command-on-region (point-min) (point-max)
+                             "rst-wrap-lines -" nil t)
+    (goto-char p)))
+```
+
 ## Configuration via pyproject.toml
 
 Project-wide defaults can be set in a `[tool.rst-wrap-lines]` section of
