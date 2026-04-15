@@ -667,6 +667,24 @@ def wrap_rst(source, width=WIDTH, join=False):
             out.extend(emitted)
             continue
 
+        # Quoted literal block: unindented body introduced by ``::``
+        # in the previous paragraph, every line starting with the same
+        # non-alphanumeric, non-whitespace quoting character. Pass the
+        # run through verbatim -- docutils treats it as literal. This
+        # must come *before* the list-item dispatch because docutils
+        # treats ``*``/``-``/``+`` after ``::`` as a quoted literal
+        # block, not as a bullet list.
+        first = stripped[0]
+        if (
+            first.isprintable()
+            and not first.isalnum()
+            and not first.isspace()
+            and _prev_nonblank_ends_with_colons(out)
+        ):
+            emitted, i = _handle_quoted_literal_block(lines, i, n)
+            out.extend(emitted)
+            continue
+
         # List item run (bullet or enumerated). Recognised at block
         # boundaries: blank line, section underline, or after indented
         # content (nested body, continuation paragraph). A bullet that
@@ -695,21 +713,6 @@ def wrap_rst(source, width=WIDTH, join=False):
         ):
             out.append(raw)
             i += 1
-            continue
-
-        # Quoted literal block: unindented body introduced by ``::``
-        # in the previous paragraph, every line starting with the same
-        # non-alphanumeric, non-whitespace quoting character. Pass the
-        # run through verbatim -- docutils treats it as literal.
-        first = stripped[0]
-        if (
-            first.isprintable()
-            and not first.isalnum()
-            and not first.isspace()
-            and _prev_nonblank_ends_with_colons(out)
-        ):
-            emitted, i = _handle_quoted_literal_block(lines, i, n)
-            out.extend(emitted)
             continue
 
         # Plain prose paragraph.
