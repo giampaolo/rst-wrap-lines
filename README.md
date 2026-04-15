@@ -7,6 +7,19 @@ Only prose paragraphs and list items are re-wrapped. Everything else
 (directives, literal blocks, tables, section underlines, comments, indented
 blocks) is left unchanged.
 
+```diff
+- This is a very long paragraph that goes way beyond the standard seventy-nine characters and really should be wrapped for better readability in a terminal or text editor.
++ This is a very long paragraph that goes way beyond the standard seventy-nine
++ characters and really should be wrapped for better readability in a terminal or
++ text editor.
+```
+
+Primary workflows:
+
+- Local: format `.rst` files automatically on save in your editor.
+- Remote: enforce consistent line width in CI pipelines using the `--check`
+  flag.
+
 ## Installation
 
 ```
@@ -132,18 +145,18 @@ are left intact.
 
 This tool fills a very specific niche: formatting reStructuredText (RST)
 **without breaking the semantic structure of the document**. The integration
-test suite runs against a large corpus of real-world `.rst` files (~15.000 in
+test suite runs against a large corpus of real-world `.rst` files (~7800 in
 total) from several upstream projects:
 
+- [Linux](https://github.com/torvalds/linux/tree/master/Documentation) (~3900 files)
+- [Salt](https://github.com/saltstack/salt/tree/master/doc) (~1100 files)
+- [Python PEPs](https://github.com/python/peps/tree/main/peps) (~740 files)
 - [CPython](https://github.com/python/cpython/tree/main/Doc) (~550 files)
-- [Sphinx](https://github.com/sphinx-doc/sphinx/tree/master/doc) (~160 files)
-- [Linux](https://github.com/torvalds/linux/tree/master/Documentation) (~1000 files)
-- [SQLAlchemy](https://github.com/sqlalchemy/sqlalchemy/tree/main/doc/build) (~200 files)
+- [Ansible](https://github.com/ansible/ansible-documentation/tree/devel/docs/docsite/rst) (~480 files)
+- [NumPy](https://github.com/numpy/numpy/tree/main/doc/source) (~340 files)
 - [pytest](https://github.com/pytest-dev/pytest/tree/main/doc/en) (~260 files)
-- [Python PEPs](https://github.com/python/peps/tree/main/peps) (~730 files)
-- [Ansible](https://github.com/ansible/ansible-documentation/tree/devel/docs/docsite/rst) (~280 files)
-- [NumPy](https://github.com/numpy/numpy/tree/main/doc/source) (~350 files)
-- [Salt](https://github.com/saltstack/salt/tree/master/doc) (~2000 files)
+- [SQLAlchemy](https://github.com/sqlalchemy/sqlalchemy/tree/main/doc/build) (~200 files)
+- [Sphinx](https://github.com/sphinx-doc/sphinx/tree/master/doc) (~150 files)
 
 For every file the suite verifies:
 
