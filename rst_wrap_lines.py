@@ -857,7 +857,8 @@ def parse_cli(args=None):
     global WIDTH, CHECK, DIFF, JOIN, SAFE, QUIET, PATHS
 
     parser = argparse.ArgumentParser(
-        description="Wrap RST prose paragraphs to a max line length."
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--version",
