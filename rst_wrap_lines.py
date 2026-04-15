@@ -589,8 +589,14 @@ def wrap_rst(source, width=WIDTH, join=False):
             i += 1
             continue
 
-        # Section title followed by an underline of equal/greater length.
-        if i + 1 < n and _is_underline(lines[i + 1]):
+        # Section title followed by an underline of equal/greater
+        # length. Both standard underlines (>=3 chars) and 2-char
+        # underlines (e.g. ``--`` under a 2-letter title like ``CF``)
+        # are accepted.
+        if i + 1 < n and (
+            _is_underline(lines[i + 1])
+            or _is_short_underline(lines[i + 1])
+        ):
             ul = lines[i + 1].rstrip()
             if len(ul) >= len(stripped):
                 out.extend((raw, lines[i + 1]))
