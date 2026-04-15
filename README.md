@@ -123,6 +123,7 @@ files (~1,800 in total) from several upstream projects:
 - [Python PEPs](https://github.com/python/peps/tree/main/peps) (~730 files)
 - [Ansible](https://github.com/ansible/ansible-documentation/tree/devel/docs/docsite/rst) (~280 files)
 - [NumPy](https://github.com/numpy/numpy/tree/main/doc/source) (~350 files)
+- [Salt](https://github.com/saltstack/salt/tree/master/doc) (~2000 files)
 
 For every file the suite verifies:
 

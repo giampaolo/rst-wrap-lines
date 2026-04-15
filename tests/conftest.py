@@ -9,6 +9,7 @@ LINUX_CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-linux")
 PEPS_CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-peps")
 ANSIBLE_CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-ansible")
 NUMPY_CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-numpy")
+SALT_CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-salt")
 
 _REPOS = [
     {
@@ -58,6 +59,12 @@ _REPOS = [
         "clone_dir": NUMPY_CLONE_DIR,
         "branch": "main",
         "sparse_dir": "doc/source/",
+    },
+    {
+        "url": "https://github.com/saltstack/salt",
+        "clone_dir": SALT_CLONE_DIR,
+        "branch": "master",
+        "sparse_dir": "doc/",
     },
 ]
 

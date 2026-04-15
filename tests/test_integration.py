@@ -10,6 +10,7 @@ Currently includes:
 - Python PEPs (peps/)
 - Ansible documentation (docs/docsite/rst/)
 - NumPy documentation (doc/source/)
+- Salt documentation (doc/)
 
 Each .rst file is a separate parametrized test item, so that
 pytest-xdist can distribute them across workers.
@@ -40,6 +41,7 @@ from .conftest import CLONE_DIR
 from .conftest import LINUX_CLONE_DIR
 from .conftest import NUMPY_CLONE_DIR
 from .conftest import PEPS_CLONE_DIR
+from .conftest import SALT_CLONE_DIR
 from .conftest import PYTEST_CLONE_DIR
 from .conftest import SPHINX_CLONE_DIR
 from .conftest import SQLALCHEMY_CLONE_DIR
@@ -62,6 +64,7 @@ _SOURCES = [
     (PEPS_CLONE_DIR / "peps", "peps"),
     (ANSIBLE_CLONE_DIR / "docs" / "docsite" / "rst", "ansible"),
     (NUMPY_CLONE_DIR / "doc" / "source", "numpy"),
+    (SALT_CLONE_DIR / "doc", "salt"),
 ]
 
 # Build (path, id_string) pairs so that files with the same name from

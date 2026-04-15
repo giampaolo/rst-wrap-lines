@@ -44,6 +44,9 @@ test-ansible:  ## Run only the Ansible corpus integration tests.
 test-numpy:  ## Run only the NumPy corpus integration tests.
 	$(PYTHON) -m pytest -n auto -k "numpy/" tests/test_integration.py $(ARGS)
 
+test-salt:  ## Run only the Salt corpus integration tests.
+	$(PYTHON) -m pytest -n auto -k "salt/" tests/test_integration.py $(ARGS)
+
 _ls = $(if $(FILES), printf '%s\n' $(FILES), git ls-files $(1))
 
 ruff:  ## Run ruff linter.
