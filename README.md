@@ -103,6 +103,28 @@ For every file the suite verifies:
   This confirms that rewrapping prose never alters headings, directives,
   code blocks, hyperlinks, or any other structural element.
 
+## Comparison with [rstfmt](https://github.com/dzhu/rstfmt)
+
+[rstfmt](https://github.com/dzhu/rstfmt) is an opinionated RST formatter
+in the style of Black or gofmt. It parses each file into a full docutils
+AST and re-emits a canonical layout from the tree. This project takes the
+opposite approach: source is edited line-by-line with regex-level
+heuristics, and anything the tool can't confidently rewrap is passed
+through byte-identical.
+
+|                              | rstfmt                         | rst-wrap-lines                       |
+| ---                          | ---                            | ---                                  |
+| Approach                     | parse to AST, re-emit          | edit source in place                 |
+| Philosophy                   | canonical format (Black/gofmt) | minimal diff                         |
+| Runtime dep on docutils      | yes, always                    | no (only with `--safe`)              |
+| Works on un-parseable input  | no                             | yes (unknown directives passed through) |
+| Diff on an already-clean file| can be large                   | zero bytes                           |
+| Normalises bullets / indent / underline styles | yes     | no                                   |
+
+Pick rstfmt if you want one canonical layout enforced across a project.
+Pick rst-wrap-lines if you're adopting line-length rules incrementally on
+an established codebase and can't reformat everything at once.
+
 ## Development
 
 ```
