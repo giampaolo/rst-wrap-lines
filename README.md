@@ -5,9 +5,7 @@ files to a maximum line length.
 
 Only prose paragraphs and list items are re-wrapped. Everything else
 (directives, literal blocks, tables, section underlines, comments, indented
-blocks) is passed through unchanged, aside from trailing whitespace which is
-always stripped. If a file is already clean, the tool produces a zero-byte
-diff.
+blocks) is passed through unchanged.
 
 ## Installation
 
@@ -17,11 +15,13 @@ pip install rst-wrap-lines
 
 ## Usage
 
+Examples:
+
 ```bash
 rst-wrap-lines docs/*.rst
 rst-wrap-lines docs/                # whole dir, recursive
 rst-wrap-lines --check docs/*.rst
-rst-wrap-lines --width 80 foo.rst
+rst-wrap-lines --width 120 foo.rst
 rst-wrap-lines --join docs/*.rst    # also merge short consecutive lines
 rst-wrap-lines --safe docs/*.rst    # verify output with docutils
 cat foo.rst | rst-wrap-lines -      # read stdin, write to stdout
@@ -29,44 +29,23 @@ cat foo.rst | rst-wrap-lines -      # read stdin, write to stdout
 
 Options:
 
-- `-w`, `--width` — maximum line length (default: 79)
-- `--check` — exit with code 1 if any file would be changed; do not write
-- `--diff` — print a unified diff instead of writing files
-- `--join` — also merge short consecutive lines inside a paragraph onto
-  one line (up to the target width). For example:
-
-  ```
-  foo         →   foo bar zoo
-  bar
-  zoo
-  ```
-
-- `--safe` — after wrapping, parse both the input and the output with
-  [docutils](https://docutils.sourceforge.io/) and compare the resulting
-  document trees. Any file whose tree would change is left untouched and
-  a diff is printed to stderr; the process then exits with code 1. Use
-  this as a defensive check in CI or on first-time runs against an
-  unfamiliar corpus. Requires docutils:
-
-  ```
-  pip install 'rst-wrap-lines[safe]'
-  ```
-
-- **stdin / stdout** — pass `-` instead of a file path to read RST from
-  stdin and write the formatted result to stdout. Combines with `--check`
-  (silent, exit 1 if changed) and `--diff` (writes the diff to stdout).
-  This is the integration point for editor formatters (Vim's
-  `formatprg`, VS Code formatters, format-on-save plugins, etc.).
-
-- `-q`, `--quiet` — suppress informational output.
-
-- `--version` — print the version and exit
+- `-w`, `--width`: maximum line length (default: 79)
+- `--diff`: print a unified diff instead of writing files
+- `--check`: exit with code 1 if any file would be changed; don't write
+- `--join`: also merge short consecutive lines inside a paragraph onto one
+  line (up to the target width).
+- `--safe`: after wrapping, parse both the input and the output with
+  [docutils](https://docutils.sourceforge.io/), and skip any file whose
+  document tree would change (printing a diff to stderr, exit code 1). Requires
+  `pip install 'rst-wrap-lines[safe]'`.
+- `-q`, `--quiet`: suppress informational output.
+- `--version`: print the version and exit
 
 ## Editor integration
 
-Because `rst-wrap-lines -` reads from stdin and writes to stdout, any editor
-that can pipe a buffer through an external command can use it as a formatter
-to run on save.
+Use `-` instead of a file path to read from stdin and write to stdout.
+This lets you hook it into any editor that can pipe the current buffer
+through a shell command, and format .rst files on save.
 
 ### Vim / Neovim
 
