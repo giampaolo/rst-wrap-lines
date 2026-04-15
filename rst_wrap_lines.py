@@ -352,16 +352,25 @@ def _handle_directive(lines, i, n, width, join):
 
 
 def _handle_simple_table(lines, i, n):
-    """Collect a simple-table block verbatim (border to closing border)."""
+    """Collect a simple-table block verbatim (border to closing border).
+
+    A simple table may contain a nested simple table inside one of its
+    cells; the nested table's closing border is indented relative to
+    the outer table. Only a same-indent border followed by a blank
+    line counts as the outer closer.
+    """
+    open_indent = len(lines[i]) - len(lines[i].lstrip(" \t"))
     emitted = [lines[i]]
     i += 1
     while i < n:
         emitted.append(lines[i])
-        if _is_simple_table_border(lines[i]) and (
-            i + 1 >= n or not lines[i + 1].strip()
-        ):
-            i += 1
-            break
+        if _is_simple_table_border(lines[i]):
+            this_indent = len(lines[i]) - len(lines[i].lstrip(" \t"))
+            if this_indent == open_indent and (
+                i + 1 >= n or not lines[i + 1].strip()
+            ):
+                i += 1
+                break
         i += 1
     return emitted, i
 
