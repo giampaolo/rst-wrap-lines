@@ -120,6 +120,7 @@ files (~1,800 in total) from several upstream projects:
 - [Linux](https://github.com/torvalds/linux/tree/master/Documentation) (~1000 files)
 - [SQLAlchemy](https://github.com/sqlalchemy/sqlalchemy/tree/main/doc/build) (~200 files)
 - [pytest](https://github.com/pytest-dev/pytest/tree/main/doc/en) (~260 files)
+- [Python PEPs](https://github.com/python/peps/tree/main/peps) (~730 files)
 
 For every file the suite verifies:
 

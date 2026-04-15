@@ -6,6 +6,7 @@ SPHINX_CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-sphinx")
 SQLALCHEMY_CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-sqlalchemy")
 PYTEST_CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-pytest")
 LINUX_CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-linux")
+PEPS_CLONE_DIR = pathlib.Path("/tmp/rst-wrap-lines-peps")
 
 _REPOS = [
     {
@@ -37,6 +38,12 @@ _REPOS = [
         "clone_dir": LINUX_CLONE_DIR,
         "branch": "master",
         "sparse_dir": "Documentation/",
+    },
+    {
+        "url": "https://github.com/python/peps",
+        "clone_dir": PEPS_CLONE_DIR,
+        "branch": "main",
+        "sparse_dir": "peps/",
     },
 ]
 
