@@ -609,6 +609,14 @@ def wrap_rst(source, width=WIDTH, join=False):
             i += 1
             continue
 
+        # Bare 2-char underline on its own line (e.g. ``==`` overline
+        # preceding a short title like ``rv``). Without this passthrough
+        # the line falls into prose and merges with the title.
+        if _is_short_underline(raw):
+            out.append(raw)
+            i += 1
+            continue
+
         # Field list item (e.g. ':Author: Giampaolo', ':type foo:').
         if _FIELD_LIST_RE.match(raw):
             out.append(raw)
