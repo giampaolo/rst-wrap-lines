@@ -1,11 +1,11 @@
 # rst-wrap-lines
 
-A command-line tool that wraps prose paragraphs of `.rst` (reStructured Text)
-files to a maximum line length.
+A command-line tool to wrap prose paragraphs in reStructuredText (.rst)
+files to a maximum line width.
 
 Only prose paragraphs and list items are re-wrapped. Everything else
 (directives, literal blocks, tables, section underlines, comments, indented
-blocks) is passed through unchanged.
+blocks) is left unchanged.
 
 ## Installation
 
@@ -32,8 +32,8 @@ Options:
 - `-w`, `--width`: maximum line length (default: 79)
 - `--diff`: print a unified diff instead of writing files
 - `--check`: exit with code 1 if any file would be changed; don't write
-- `--join`: also merge short consecutive lines inside a paragraph onto one
-  line (up to the target width).
+- `--join`: also merge short consecutive lines within a paragraph into one
+  (up to the target width).
 - `--safe`: after wrapping, parse both the input and the output with
   [docutils](https://docutils.sourceforge.io/), and skip any file whose
   document tree would change (printing a diff to stderr, exit code 1). Requires
@@ -45,7 +45,7 @@ Options:
 
 Use `-` instead of a file path to read from stdin and write to stdout.
 This lets you hook it into any editor that can pipe the current buffer
-through a shell command, and format .rst files on save.
+through a shell command, and format `.rst` files on save.
 
 ### Vim / Neovim
 
@@ -156,28 +156,6 @@ For every file the suite verifies:
   identical document trees (after normalising intra-node whitespace).
   This confirms that rewrapping prose never alters headings, directives,
   code blocks, hyperlinks, or any other structural element.
-
-## Comparison with [rstfmt](https://github.com/dzhu/rstfmt)
-
-[rstfmt](https://github.com/dzhu/rstfmt) is an opinionated RST formatter
-in the style of Black or gofmt. It parses each file into a full docutils
-AST and re-emits a canonical layout from the tree. This project takes the
-opposite approach: source is edited line-by-line with regex-level
-heuristics, and anything the tool can't confidently rewrap is passed
-through unchanged.
-
-|                              | rstfmt                         | rst-wrap-lines                       |
-| ---                          | ---                            | ---                                  |
-| Approach                     | parse to AST, re-emit          | edit source in place                 |
-| Philosophy                   | canonical format (Black/gofmt) | minimal diff                         |
-| Runtime dep on docutils      | yes, always                    | no (only with `--safe`)              |
-| Works on un-parseable input  | no                             | yes (unknown directives passed through) |
-| Diff on an already-clean file| can be large                   | zero bytes                           |
-| Normalises bullets / indent / underline styles | yes     | no                                   |
-
-Pick rstfmt if you want one canonical layout enforced across a project.
-Pick rst-wrap-lines if you're adopting line-length rules incrementally on
-an established codebase and can't reformat everything at once.
 
 ## Development
 
