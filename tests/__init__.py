@@ -26,7 +26,10 @@ _LIST_ITEM_RE = re.compile(r"^(\s*)([-*+]|\d+[.)]) ")
 _DIRECTIVE_RE = re.compile(r"^\s*\.\. \w[\w:+.-]*::")
 
 # Matches section underline/overline lines (2+ repeated punctuation chars).
-_UNDERLINE_RE = re.compile(r"^([=\-~^#*+\']{2,})\s*$")
+# Minimum 3 chars: docutils requires >=3 for a section underline. A bare
+# ``--`` on its own line is parsed as plain prose text, not as an
+# underline, so the fidelity guard must not demand it appear verbatim.
+_UNDERLINE_RE = re.compile(r"^([=\-~^#*+\']{3,})\s*$")
 
 
 def has_bare_double_space(line):
