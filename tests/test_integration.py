@@ -130,28 +130,14 @@ class TestCorpus(BaseTest):
 
     JOIN = True
 
-    @pytest.mark.parametrize("path", _RST_FILE_PARAMS)
-    def test_all(self, path):
-        src = path.read_text(encoding="utf-8")
-        out = wrap_rst(src, join=self.JOIN)
-        # The tool strips trailing whitespace on every line, so a
-        # "verbatim passthrough" output line matches the source only
-        # after rstrip'ing.
-        src_line_set = {ln.rstrip() for ln in src.splitlines()}
-
-        # 1. idempotency
-        assert wrap_rst(out, join=self.JOIN) == out, "not idempotent"
-
-        # 2. cross-mode stability: output produced by join=True
-        # should be a fixpoint under join=False (every line is
-        # already within WIDTH, so there is nothing to re-wrap,
-        # and join=False never merges short lines).
+    def assert_cross_mode_stable(self, out):
+        """join=True output is a fixpoint under join=False."""
         assert (
             wrap_rst(out, join=False) == out
         ), "join=True output is not stable under join=False"
 
-        # 3. no tool-produced line may exceed the target width.
-        #    Verbatim passthrough of already-long source lines is OK.
+    def assert_no_line_exceeds_width(self, src_line_set, out):
+        """No tool-produced line exceeds WIDTH."""
         for line in out.splitlines():
             if line in src_line_set:
                 continue  # verbatim passthrough -- OK
@@ -161,13 +147,8 @@ class TestCorpus(BaseTest):
                     f" ({len(line)} > {WIDTH}): {line!r:.80}"
                 )
 
-        # 4. no prose line produced by the tool should contain a bare
-        #    double-space (spaces inside inline RST constructs are
-        #    intentional and excluded from this check). List-item
-        #    lines are excluded: the bullet-to-text spacing is
-        #    preserved verbatim from the source and may be 2+ spaces
-        #    (checked separately by assert_no_double_space_in_list_items
-        #    on the text *after* the bullet marker).
+    def assert_no_double_space_in_prose(self, src_line_set, out):
+        """No tool-produced prose line has a bare double-space."""
         for line in out.splitlines():
             if line in src_line_set:
                 continue  # verbatim passthrough -- OK
@@ -180,7 +161,19 @@ class TestCorpus(BaseTest):
                     f"tool-produced line has bare double-space: {line!r:.100}"
                 )
 
-        # 5. universal sanity checks.
+    @pytest.mark.parametrize("path", _RST_FILE_PARAMS)
+    def test_all(self, path):
+        src = path.read_text(encoding="utf-8")
+        out = wrap_rst(src, join=self.JOIN)
+        # The tool strips trailing whitespace on every line, so a
+        # "verbatim passthrough" output line matches the source only
+        # after rstrip'ing.
+        src_line_set = {ln.rstrip() for ln in src.splitlines()}
+
+        assert wrap_rst(out, join=self.JOIN) == out, "not idempotent"
+        self.assert_cross_mode_stable(out)
+        self.assert_no_line_exceeds_width(src_line_set, out)
+        self.assert_no_double_space_in_prose(src_line_set, out)
         self.check_all(src, out)
 
 
