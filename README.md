@@ -153,17 +153,59 @@ configurable in pyproject.toml — they're run modes, not project policy.
 
 ## What gets wrapped
 
-- Prose paragraphs
-- List items (bullet and enumerated), including multi-line continuations
-- Bodies of prose-body directives (`.. note::`, `.. warning::`,
-  `.. versionadded::`, `.. class::`, etc.)
-- Double spaces in prose are removed (e.g. `hello  world` → `hello world`),
-  even when the paragraph already fits within the target width
-- Trailing whitespace is stripped from every line.
+- **Prose paragraphs**
 
-Short consecutive lines inside a paragraph are merged onto one line (up to the
-target width). With `--no-join`, existing line breaks within prose are preserved
-and only over-width lines get wrapped.
+  ```diff
+  - This is a very long paragraph that goes way beyond the standard seventy-nine characters and really should be wrapped.
+  + This is a very long paragraph that goes way beyond the standard
+  + seventy-nine characters and really should be wrapped.
+  ```
+
+- **List items** (bullet and enumerated)
+
+  ```diff
+  - - This is a very long bullet item that exceeds the target width and needs to be re-wrapped to fit within the line limit.
+  + - This is a very long bullet item that exceeds the target width and
+  +   needs to be re-wrapped to fit within the line limit.
+  ```
+
+- **Bodies of prose-body directives** (`.. note::`, `.. warning::`,
+  `.. versionadded::`, `.. class::`, etc.)
+
+  ```diff
+    .. note::
+  -    This is a very long note that exceeds the target width and needs to be re-wrapped to fit within the line limit.
+  +    This is a very long note that exceeds the target width and needs
+  +    to be re-wrapped to fit within the line limit.
+  ```
+
+- **Short consecutive lines** within a paragraph (disable with `--no-join`)
+
+  ```diff
+  - Some short
+  - lines that
+  - could fit on one.
+  + Some short lines that could fit on one.
+  ```
+
+## What gets formatted
+
+Beyond wrapping, the tool applies these normalizations everywhere (including
+lines that already fit within the target width):
+
+- **Double or more spaces** in prose are collapsed
+
+  ```diff
+  - hello  world
+  + hello world
+  ```
+
+- **Trailing whitespace** is stripped from every line
+
+  ```diff
+  - Some text with trailing spaces.···
+  + Some text with trailing spaces.
+  ```
 
 ## What is left untouched
 
