@@ -31,7 +31,6 @@ import pytest
 
 import rst_wrap_lines
 from rst_wrap_lines import _DIRECTIVE_RE as _TOOL_DIRECTIVE_RE
-from rst_wrap_lines import _PROSE_BODY_DIRECTIVES
 from rst_wrap_lines import WIDTH
 from rst_wrap_lines import DoctreeParseError
 from rst_wrap_lines import _doctree_diff
@@ -54,7 +53,42 @@ from .conftest import SQLALCHEMY_CLONE_DIR
 # followed by one or more spaces). Used in test_all to skip the
 # general double-space check on list-item lines -- list items may
 # legitimately have 2+ spaces between the bullet and the text.
-_LIST_ITEM_LEAD_RE = re.compile(r"^\s*([-*+]|\d+[.)]|\(\d+\)|#\.)\s+")
+LIST_ITEM_LEAD_RE = re.compile(r"^\s*([-*+]|\d+[.)]|\(\d+\)|#\.)\s+")
+
+# Directives whose body is code or verbatim content that must pass
+# through unchanged.  Used to identify *real* code blocks among the
+# literal_block nodes that docutils produces for unknown directives
+# (without Sphinx every unknown directive body becomes a literal
+# block).  Anything NOT in this set is assumed to be prose, metadata,
+# or structural content — safe to skip when verifying code-block
+# preservation.
+CODE_BODY_DIRECTIVES = frozenset({
+    # Standard code display
+    "code-block",
+    "code",
+    "sourcecode",
+    "highlight",
+    "literalinclude",
+    "parsed-literal",
+    # Raw / math
+    "raw",
+    "math",
+    # Sphinx testing
+    "doctest",
+    "testcode",
+    "testoutput",
+    "testsetup",
+    "testcleanup",
+    # Misc code-body
+    "ipython",
+    "try_examples",
+    "productionlist",
+    "grammar-snippet",
+    # Graphviz
+    "graphviz",
+    "digraph",
+    "graph",
+})
 
 _LOCAL_RST_DIR = pathlib.Path(__file__).parent / "rst"
 
@@ -131,7 +165,7 @@ class TestCorpus(BaseTest):
                 continue  # verbatim passthrough -- OK
             if line.startswith((" ", "\t", "..")):
                 continue  # indented or directive line -- skip
-            if _LIST_ITEM_LEAD_RE.match(line):
+            if LIST_ITEM_LEAD_RE.match(line):
                 continue  # list item -- skip
             if has_bare_double_space(line):
                 pytest.fail(
@@ -142,47 +176,19 @@ class TestCorpus(BaseTest):
         self.check_all(src, out)
 
 
-def is_prose_directive_fallback(text):
-    """True if *text* is a prose-body directive that docutils dumped
+def is_code_directive_fallback(text):
+    """True if *text* is a code-body directive that docutils dumped
     as a literal block because it doesn't know the directive.
 
-    These are directives in ``_PROSE_BODY_DIRECTIVES`` (e.g.
-    ``.. function::``, ``.. note::``) — their body is prose that the
-    tool intentionally wraps, so changes are expected.  Code-body
-    directives (``.. testcode::``, ``.. highlight::``, etc.) are NOT
-    excluded.
+    Docutils without Sphinx turns every unknown directive body into a
+    literal_block whose text starts with the directive marker.  This
+    function identifies the subset whose body is verbatim code (listed
+    in ``CODE_BODY_DIRECTIVES``).  All other directive fallbacks
+    (prose, metadata, structural) return False and are skipped
+    when comparing node text.
     """
     m = _TOOL_DIRECTIVE_RE.match(text.lstrip())
-    return bool(m) and m.group(1) in _PROSE_BODY_DIRECTIVES
-
-
-def code_blocks_from_tree(tree):
-    """Extract code block text from a docutils tree.
-
-    Returns a set of strings (lines rstripped). Considers:
-
-    - ``::`` literal blocks
-    - ``.. code-block::``, ``.. code::``, ``.. sourcecode::``
-    - ``>>>`` doctest blocks
-    - Non-prose directive bodies (``.. testcode::``,
-      ``.. highlight::``, ``.. literalinclude::``, etc.)
-
-    Excludes prose-body directive fallbacks (``.. function::``,
-    ``.. note::``, etc.) that docutils misclassifies as literal
-    blocks because it doesn't know the directive.
-    """
-    blocks = set()
-    node_types = (
-        docutils.nodes.literal_block,
-        docutils.nodes.doctest_block,
-    )
-    for node in tree.findall(lambda n: isinstance(n, node_types)):
-        text = node.astext()
-        if is_prose_directive_fallback(text):
-            continue
-        normalized = "\n".join(ln.rstrip() for ln in text.splitlines())
-        blocks.add(normalized)
-    return blocks
+    return bool(m) and m.group(1) in CODE_BODY_DIRECTIVES
 
 
 class TestDocutils(BaseTest):
@@ -191,9 +197,145 @@ class TestDocutils(BaseTest):
 
     Parse both the original and the wrapped version with docutils
     once, then check two invariants:
-    1. The normalised doctree is unchanged.
-    2. Every code block in the source appears unchanged in the output.
+    1. The normalised doctree is unchanged (whitespace-insensitive).
+    2. All nodes appear in the same order with the same types, and
+       non-paragraph nodes have byte-identical text.
     """
+
+    # Node types to walk for the ordered-node check.  Covers
+    # structural, inline, and verbatim nodes.
+    CHECKED_TYPES = (
+        # Structural
+        docutils.nodes.section,
+        docutils.nodes.paragraph,
+        docutils.nodes.title,
+        docutils.nodes.bullet_list,
+        docutils.nodes.enumerated_list,
+        docutils.nodes.definition_list,
+        docutils.nodes.field_list,
+        docutils.nodes.table,
+        docutils.nodes.block_quote,
+        docutils.nodes.footnote,
+        docutils.nodes.citation,
+        docutils.nodes.line_block,
+        docutils.nodes.transition,
+        docutils.nodes.comment,
+        docutils.nodes.target,
+        docutils.nodes.substitution_definition,
+        docutils.nodes.literal_block,
+        docutils.nodes.doctest_block,
+        # Inline
+        docutils.nodes.emphasis,
+        docutils.nodes.strong,
+        docutils.nodes.literal,
+        docutils.nodes.reference,
+        docutils.nodes.footnote_reference,
+        docutils.nodes.substitution_reference,
+        docutils.nodes.title_reference,
+    )
+
+    # Node types whose text is their own content (not aggregated
+    # from child paragraphs) and must be byte-identical after
+    # re-wrapping.  Container nodes (section, bullet_list, etc.)
+    # are excluded because their astext() includes descendant
+    # paragraph text which legitimately changes.
+    TEXT_CHECK_TYPES = (
+        docutils.nodes.title,
+        docutils.nodes.literal_block,
+        docutils.nodes.doctest_block,
+        docutils.nodes.comment,
+        docutils.nodes.target,
+        docutils.nodes.substitution_definition,
+        docutils.nodes.emphasis,
+        docutils.nodes.strong,
+        docutils.nodes.literal,
+        docutils.nodes.reference,
+        docutils.nodes.footnote_reference,
+        docutils.nodes.substitution_reference,
+        docutils.nodes.title_reference,
+    )
+
+    def assert_doctree_unchanged(self, src, out, src_tree, out_tree):
+        diff = _doctree_diff(src, out, src_tree=src_tree, dst_tree=out_tree)
+        if diff is not None:
+            pytest.fail(f"doctree changed:\n{diff}")
+
+    def assert_nodes_preserved(self, src_tree, out_tree):
+        """Walk both trees in document order and verify that:
+
+        - The sequence of node types is identical.
+        - For nodes whose text must not change (everything except
+          paragraphs and prose-directive literal blocks), the text
+          is byte-identical.
+        """
+
+        def collect(tree):
+            nodes = []
+            for node in tree.findall(
+                lambda n: isinstance(n, self.CHECKED_TYPES)
+            ):
+                # Skip nodes inside system_message.
+                parent = node.parent
+                in_sysmsg = False
+                while parent is not None:
+                    if isinstance(parent, docutils.nodes.system_message):
+                        in_sysmsg = True
+                        break
+                    parent = parent.parent
+                if in_sysmsg:
+                    continue
+                nodes.append(node)
+            return nodes
+
+        src_nodes = collect(src_tree)
+        out_nodes = collect(out_tree)
+
+        # Compare type sequence.
+        src_types = [n.__class__.__name__ for n in src_nodes]
+        out_types = [n.__class__.__name__ for n in out_nodes]
+        assert src_types == out_types, (
+            "node type sequence differs "
+            f"({len(src_types)} vs {len(out_types)} nodes)"
+        )
+
+        # Compare text for leaf-content nodes.
+        inline_types = (
+            docutils.nodes.emphasis,
+            docutils.nodes.strong,
+            docutils.nodes.literal,
+            docutils.nodes.reference,
+            docutils.nodes.footnote_reference,
+            docutils.nodes.substitution_reference,
+            docutils.nodes.title_reference,
+        )
+        for src_node, out_node in zip(src_nodes, out_nodes, strict=True):
+            if not isinstance(src_node, self.TEXT_CHECK_TYPES):
+                continue
+            # Prose-directive fallback: docutils dumped the body as
+            # a literal block, but the tool legitimately wraps it.
+            if isinstance(src_node, docutils.nodes.literal_block):
+                text = src_node.astext()
+                if _TOOL_DIRECTIVE_RE.match(text.lstrip()):
+                    if not is_code_directive_fallback(text):
+                        continue
+            # Inline nodes inside paragraphs can have their
+            # inter-word whitespace changed by re-wrapping
+            # (newline -> space).  Normalize before comparing.
+            if isinstance(src_node, inline_types):
+                src_text = " ".join(src_node.astext().split())
+                out_text = " ".join(out_node.astext().split())
+            else:
+                src_text = "\n".join(
+                    ln.rstrip() for ln in src_node.astext().splitlines()
+                )
+                out_text = "\n".join(
+                    ln.rstrip() for ln in out_node.astext().splitlines()
+                )
+            assert src_text == out_text, (
+                f"{src_node.__class__.__name__} text changed:\n"
+                f"  src: {src_text[:200]!r}\n"
+                f"  out: {out_text[:200]!r}"
+            )
 
     @pytest.mark.parametrize("path", _RST_FILE_PARAMS)
     def test_it(self, path):
@@ -210,15 +352,5 @@ class TestDocutils(BaseTest):
             assert exc_info.value.code == 1
             return pytest.skip(f"docutils could not parse: {e}")
 
-        # Test the doctree is unchanged.
-        diff = _doctree_diff(src, out, src_tree=src_tree, dst_tree=out_tree)
-        if diff is not None:
-            return pytest.fail(f"doctree changed:\n{diff}")
-
-        # Test code blocks are unchanged.
-        src_blocks = code_blocks_from_tree(src_tree)
-        out_blocks = code_blocks_from_tree(out_tree)
-        for block in src_blocks:
-            assert (
-                block in out_blocks
-            ), f"code block changed or missing in output:\n{block}"
+        self.assert_doctree_unchanged(src, out, src_tree, out_tree)
+        self.assert_nodes_preserved(src_tree, out_tree)
