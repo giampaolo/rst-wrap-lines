@@ -165,7 +165,6 @@ class BaseTest:
         self.assert_trailing_newline_consistent(src, out)
         self.assert_no_trailing_whitespace_introduced(src, out)
         self.assert_no_double_space_in_list_items(src, out)
-        self.assert_blank_line_count_preserved(src, out)
         self.assert_hyperlink_targets_unchanged(src, out)
         self.assert_directive_markers_preserved(src, out)
         self.assert_section_underlines_preserved(src, out)
@@ -207,27 +206,32 @@ class BaseTest:
                 text
             ), f"tool-produced list-item line has bare double-space: {line!r}"
 
-    def assert_blank_line_count_preserved(self, src, out):
-        r"""Assert the number of blank lines is unchanged.
+    def assert_no_consecutive_blank_lines(self, out):
+        """Assert no consecutive blank lines at column 0.
 
-        Count lines that are empty after ``strip()``. The older proxy
-        of ``count("\n\n")`` misreports when the source contains
-        whitespace-only lines (e.g. ``"  "``) or form-feed characters
-        on their own line, neither of which is a tool bug.
+        The tool collapses multiple top-level blank lines into one.
+        Blank lines inside indented content (literal blocks, code
+        blocks, directive bodies) are preserved verbatim and excluded
+        from this check.
         """
-        # ``rstrip`` before ``splitlines`` drops trailing whitespace and
-        # trailing blank lines from both sides, so a whitespace-only
-        # final "line" without a terminating newline (which the tool
-        # strips away) doesn't throw off the count.
-        src_blanks = sum(
-            1 for ln in src.rstrip().splitlines() if not ln.strip()
-        )
-        out_blanks = sum(
-            1 for ln in out.rstrip().splitlines() if not ln.strip()
-        )
-        assert (
-            src_blanks == out_blanks
-        ), f"blank line count changed: {src_blanks} -> {out_blanks}"
+        out_lines = out.splitlines()
+        for i in range(len(out_lines) - 1):
+            a, b = out_lines[i], out_lines[i + 1]
+            if not a.strip() and not b.strip():
+                # Both blank — check they are not inside indented
+                # content. Look backwards for context: if the most
+                # recent non-blank line was indented, we are inside a
+                # verbatim block.
+                inside_indented = False
+                for j in range(i - 1, -1, -1):
+                    if out_lines[j].strip():
+                        if out_lines[j][:1] in {" ", "\t"}:
+                            inside_indented = True
+                        break
+                if not inside_indented:
+                    raise AssertionError(
+                        f"consecutive blank lines at lines {i + 1}-{i + 2}"
+                    )
 
     def assert_hyperlink_targets_unchanged(self, src, out):
         """Assert every hyperlink target line in src appears in out.

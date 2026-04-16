@@ -200,6 +200,19 @@ lines that already fit within the target width):
   + hello world
   ```
 
+- **Consecutive blank lines** between top-level blocks are collapsed into one
+
+  ```diff
+  - Paragraph one.
+  -
+  -
+  -
+  - Paragraph two.
+  + Paragraph one.
+  +
+  + Paragraph two.
+  ```
+
 - **Trailing whitespace** is stripped from every line
 
   ```diff

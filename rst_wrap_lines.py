@@ -630,6 +630,10 @@ def wrap_rst(source, width=WIDTH, join=True):
         while lines and not lines[-1]:
             lines.pop()
     out = []
+    # Indices in ``out`` that come from verbatim block handlers
+    # (simple tables, doctest blocks) whose content must never have
+    # blank lines collapsed.
+    protected = set()
     i = 0
     n = len(lines)
 
@@ -714,7 +718,9 @@ def wrap_rst(source, width=WIDTH, join=True):
         # Simple table (border of '===' / '---' groups).
         if _is_simple_table_border(raw):
             emitted, i = _handle_simple_table(lines, i, n)
+            start = len(out)
             out.extend(emitted)
+            protected.update(range(start, len(out)))
             continue
 
         # Quoted literal block: unindented body introduced by ``::``
@@ -777,7 +783,35 @@ def wrap_rst(source, width=WIDTH, join=True):
         emitted, i = _handle_prose(lines, i, n, width, join)
         out.extend(emitted)
 
-    result = "\n".join(out)
+    # Collapse consecutive blank lines into one, but preserve them
+    # inside indented blocks (literal blocks, code blocks, directive
+    # bodies) and protected blocks (simple tables). The rule: when a
+    # duplicate blank is encountered, peek ahead to the next non-blank
+    # line. If it is indented, the blanks lead into (or sit inside)
+    # indented content and must be kept; otherwise collapse.
+    collapsed = []
+    for idx, ln in enumerate(out):
+        if ln.strip():
+            collapsed.append(ln)
+        else:
+            # Never collapse inside protected blocks (simple tables).
+            if idx in protected:
+                collapsed.append(ln)
+                continue
+            if collapsed and not collapsed[-1].strip():
+                # Previous output line is also blank — collapse
+                # unless the next non-blank line is indented.
+                next_indented = False
+                for k in range(idx + 1, len(out)):
+                    if out[k].strip():
+                        next_indented = out[k][:1] in {" ", "\t"}
+                        break
+                if next_indented:
+                    collapsed.append(ln)
+                continue
+            collapsed.append(ln)
+
+    result = "\n".join(collapsed)
     # splitlines() + '\n'.join() is asymmetric by exactly one trailing
     # separator: restore it so trailing blank lines are byte-identical.
     if source.endswith("\n"):

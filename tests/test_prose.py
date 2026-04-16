@@ -47,7 +47,12 @@ class TestProseParagraphs(BaseTest):
     def test_blank_lines_only(self):
         src = "\n\n\n"
         out = self.wrap(src)
-        assert out == src
+        assert out == "\n"
+
+    def test_multiple_blank_lines_collapsed(self):
+        src = "Paragraph 1.\n\n\n\nParagraph 2.\n"
+        out = self.wrap(src)
+        assert out == "Paragraph 1.\n\nParagraph 2.\n"
 
     def test_multiline_paragraph_joined_and_wrapped(self):
         # Three short lines that together exceed the width must be
