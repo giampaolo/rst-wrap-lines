@@ -2,6 +2,8 @@
 
 import re
 
+from rst_wrap_lines import _DIRECTIVE_RE as _TOOL_DIRECTIVE_RE
+from rst_wrap_lines import _PROSE_BODY_DIRECTIVES
 from rst_wrap_lines import wrap_rst
 
 # Matches inline RST constructs that may legitimately contain multiple
@@ -37,6 +39,109 @@ def has_bare_double_space(line):
     return "  " in _INLINE_MASK_RE.sub("X", line)
 
 
+def _collect_indented_body(lines, i, n, min_indent):
+    """Collect indented lines starting at *i*.
+
+    Returns (block_lines_rstripped, next_i). Stops when a non-blank
+    line has indent < *min_indent*.
+    """
+    buf = []
+    while i < n:
+        ln = lines[i]
+        if ln.strip() and (len(ln) - len(ln.lstrip())) < min_indent:
+            break
+        buf.append(ln.rstrip())
+        i += 1
+    while buf and not buf[-1]:
+        buf.pop()
+    return buf, i
+
+
+def _extract_code_blocks(text):
+    """Extract code block content from RST text.
+
+    Returns a list of block strings (lines rstripped, since the tool
+    strips trailing whitespace). Identifies three kinds of code
+    blocks:
+
+    1. ``::`` literal blocks — indented content after a line ending
+       with ``::`` (not a directive marker). Content must be indented
+       more than the ``::`` line.
+    2. Non-prose directive bodies — ``.. code-block::``,
+       ``.. highlight::``, etc. (anything not in
+       ``_PROSE_BODY_DIRECTIVES``).
+    3. Doctest blocks — runs of ``>>>`` / ``...`` lines.
+    """
+    lines = text.splitlines()
+    n = len(lines)
+    blocks = []
+    i = 0
+    while i < n:
+        raw = lines[i]
+        stripped = raw.rstrip()
+        lstripped = raw.lstrip()
+
+        # --- Non-prose directive body ---
+        m = _TOOL_DIRECTIVE_RE.match(raw)
+        if m and m.group(1) not in _PROSE_BODY_DIRECTIVES:
+            i += 1
+            # Directive body: all indented/blank lines after marker.
+            body_start = i
+            while i < n and (not lines[i] or lines[i][:1] in {" ", "\t"}):
+                i += 1
+            body = [ln.rstrip() for ln in lines[body_start:i]]
+            while body and not body[-1]:
+                body.pop()
+            if body:
+                blocks.append("\n".join(body))
+            continue
+
+        # --- ``::`` literal block ---
+        if stripped.endswith("::") and not re.match(r"^\s*\.\. ", stripped):
+            introducer_indent = len(raw) - len(lstripped)
+            blank_start = i + 1
+            i = blank_start
+            while i < n and not lines[i].strip():
+                i += 1
+            # RST requires at least one blank line after ::.
+            if i == blank_start or i >= n:
+                continue
+            first = lines[i]
+            content_indent = len(first) - len(first.lstrip())
+            if content_indent <= introducer_indent:
+                continue
+            buf, i = _collect_indented_body(lines, i, n, content_indent)
+            if buf:
+                blocks.append("\n".join(buf))
+            continue
+
+        # --- Doctest block ---
+        if lstripped.startswith(">>> ") or lstripped == ">>>":
+            buf = [raw.rstrip()]
+            i += 1
+            while i < n:
+                ln = lines[i]
+                ls = ln.lstrip()
+                is_doctest = ls.startswith((">>> ", "... ")) or ls in {
+                    ">>>",
+                    "...",
+                }
+                is_output = ln.strip() and not ls.startswith(">>>")
+                if is_doctest or is_output:
+                    buf.append(ln.rstrip())
+                    i += 1
+                else:
+                    break
+            while buf and not buf[-1]:
+                buf.pop()
+            if buf:
+                blocks.append("\n".join(buf))
+            continue
+
+        i += 1
+    return blocks
+
+
 class BaseTest:
     WIDTH = 79
     JOIN = False
@@ -64,6 +169,7 @@ class BaseTest:
         self.assert_hyperlink_targets_unchanged(src, out)
         self.assert_directive_markers_preserved(src, out)
         self.assert_section_underlines_preserved(src, out)
+        self.assert_code_blocks_unchanged(src, out)
 
     def assert_trailing_newline_consistent(self, src, out):
         """Assert output ends with newline iff source does."""
@@ -163,3 +269,18 @@ class BaseTest:
                 assert (
                     line.rstrip() in out_lines
                 ), f"section underline line missing from output: {line!r}"
+
+    def assert_code_blocks_unchanged(self, src, out):
+        """Assert code block content is unchanged.
+
+        Covers ``::`` literal blocks, non-prose directive bodies,
+        and doctest blocks. Compares after rstrip per line (the
+        tool strips trailing whitespace).
+        """
+        src_blocks = _extract_code_blocks(src)
+        out_blocks = _extract_code_blocks(out)
+        out_set = set(out_blocks)
+        for i, s in enumerate(src_blocks):
+            assert (
+                s in out_set
+            ), f"source code block {i} missing or changed in output:\n{s}"
