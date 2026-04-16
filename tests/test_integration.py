@@ -143,16 +143,13 @@ class TestCorpus(BaseTest):
 
 def parse_doctree(text):
     """Parse *text* with docutils, return the tree or ``None``."""
-    try:
-        return publish_doctree(
-            text,
-            settings_overrides={
-                "report_level": Reporter.SEVERE_LEVEL + 1,
-                "halt_level": Reporter.SEVERE_LEVEL + 1,
-            },
-        )
-    except (KeyError, TypeError, AttributeError, ValueError):
-        return None
+    return publish_doctree(
+        text,
+        settings_overrides={
+            "report_level": Reporter.SEVERE_LEVEL + 1,
+            "halt_level": Reporter.SEVERE_LEVEL + 1,
+        },
+    )
 
 
 def code_blocks_from_tree(tree):
@@ -161,7 +158,6 @@ def code_blocks_from_tree(tree):
     Returns a set of strings (lines rstripped). Excludes
     unknown-directive fallbacks (text starting with ``..``).
     """
-
     blocks = set()
     node_types = (
         docutils.nodes.literal_block,
@@ -207,14 +203,13 @@ class TestDocutils(BaseTest):
         if diff is not None:
             pytest.fail(diff)
 
-        # Code block preservation: parse once, check every source
-        # code block appears unchanged in the output.
         src_tree = parse_doctree(src)
         if src_tree is None:
-            return
+            return pytest.skip(f"docutils can't parse {src}")
         out_tree = parse_doctree(out)
         if out_tree is None:
-            return
+            raise pytest.fail(f"failed to parse {src}")
+
         src_blocks = code_blocks_from_tree(src_tree)
         out_blocks = code_blocks_from_tree(out_tree)
         for block in src_blocks:
