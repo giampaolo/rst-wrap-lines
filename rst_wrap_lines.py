@@ -643,16 +643,75 @@ def _prepare_lines(source):
     return lines
 
 
+def _try_verbatim(raw, stripped, lines, i, n):
+    """Check if line *i* should pass through unchanged.
+
+    Returns ``(emitted_lines, new_i)`` when the line (or pair of lines,
+    for section titles) is a verbatim passthrough, or ``None`` when the
+    caller should try handler dispatch instead.
+    """
+    # Blank line.
+    if not stripped:
+        return [raw], i + 1
+
+    # Indented line: literal block, directive body, nested content,
+    # block quote. (Indented list items are not wrapped; see
+    # _handle_list_run for why.)
+    if raw[:1] in {" ", "\t"}:
+        return [raw], i + 1
+
+    # Anonymous hyperlink target: ``__ URL``. Must be preserved
+    # verbatim -- joining it into surrounding prose would turn the
+    # target definition into garbled text.
+    if stripped.startswith("__ "):
+        return [raw], i + 1
+
+    # Section title followed by an underline of equal/greater
+    # length. Both standard underlines (>=3 chars) and 2-char
+    # underlines (e.g. ``--`` under a 2-letter title like ``CF``)
+    # are accepted.
+    if i + 1 < n and (
+        _is_underline(lines[i + 1]) or _is_short_underline(lines[i + 1])
+    ):
+        ul = lines[i + 1].rstrip()
+        if len(ul) >= len(stripped):
+            return [raw, lines[i + 1]], i + 2
+
+    # Bare underline (overline already handled above).
+    if _is_underline(raw):
+        return [raw], i + 1
+
+    # Bare 2-char underline on its own line (e.g. ``==`` overline
+    # preceding a short title like ``rv``). Without this passthrough
+    # the line falls into prose and merges with the title.
+    if _is_short_underline(raw):
+        return [raw], i + 1
+
+    # Field list item (e.g. ':Author: Giampaolo', ':type foo:').
+    if _FIELD_LIST_RE.match(raw):
+        return [raw], i + 1
+
+    # Option list item (e.g. '-f FILE', '--output FILE').
+    if _OPTION_LIST_RE.match(raw):
+        return [raw], i + 1
+
+    # Grid table row or line-block.
+    if stripped[0] in "+|":
+        return [raw], i + 1
+
+    return None
+
+
 def _rewrite_blocks(lines, width, join):
     """Classify each block and wrap prose paragraphs.
 
     This is the core dispatch loop: it walks *lines*, identifies the
     RST construct each line belongs to, and either passes the block
     through verbatim or delegates to a ``_handle_*`` function that
-    re-wraps it. Returns ``(out, protected)`` where *out* is the
-    list of output lines and *protected* is the set of indices in
-    *out* that belong to verbatim blocks whose content must never
-    be modified by later formatting passes (e.g. simple tables).
+    re-wraps it. Returns ``(out, protected)`` where *out* is the list
+    of output lines and *protected* is the set of indices in *out* that
+    belong to verbatim blocks whose content must never be modified by
+    later formatting passes (e.g. simple tables).
     """
     out = []
     protected = set()
@@ -663,18 +722,11 @@ def _rewrite_blocks(lines, width, join):
         raw = lines[i]
         stripped = raw.strip()
 
-        # Blank line.
-        if not stripped:
-            out.append(raw)
-            i += 1
-            continue
-
-        # Indented line: literal block, directive body, nested content,
-        # block quote. Pass through verbatim. (Indented list items are
-        # not wrapped; see _handle_list_run for why.)
-        if raw[:1] in {" ", "\t"}:
-            out.append(raw)
-            i += 1
+        # Lines that pass through unchanged.
+        result = _try_verbatim(raw, stripped, lines, i, n)
+        if result is not None:
+            emitted, i = result
+            out.extend(emitted)
             continue
 
         # Explicit markup: directive, comment, target, footnote/citation
@@ -682,59 +734,6 @@ def _rewrite_blocks(lines, width, join):
         if stripped.startswith(".."):
             emitted, i = _handle_directive(lines, i, n, width, join)
             out.extend(emitted)
-            continue
-
-        # Anonymous hyperlink target: ``__ URL``. Must be preserved
-        # verbatim -- joining it into surrounding prose would turn the
-        # target definition into garbled text.
-        if stripped.startswith("__ "):
-            out.append(raw)
-            i += 1
-            continue
-
-        # Section title followed by an underline of equal/greater
-        # length. Both standard underlines (>=3 chars) and 2-char
-        # underlines (e.g. ``--`` under a 2-letter title like ``CF``)
-        # are accepted.
-        if i + 1 < n and (
-            _is_underline(lines[i + 1]) or _is_short_underline(lines[i + 1])
-        ):
-            ul = lines[i + 1].rstrip()
-            if len(ul) >= len(stripped):
-                out.extend((raw, lines[i + 1]))
-                i += 2
-                continue
-
-        # Bare underline (overline already handled above).
-        if _is_underline(raw):
-            out.append(raw)
-            i += 1
-            continue
-
-        # Bare 2-char underline on its own line (e.g. ``==`` overline
-        # preceding a short title like ``rv``). Without this passthrough
-        # the line falls into prose and merges with the title.
-        if _is_short_underline(raw):
-            out.append(raw)
-            i += 1
-            continue
-
-        # Field list item (e.g. ':Author: Giampaolo', ':type foo:').
-        if _FIELD_LIST_RE.match(raw):
-            out.append(raw)
-            i += 1
-            continue
-
-        # Option list item (e.g. '-f FILE', '--output FILE').
-        if _OPTION_LIST_RE.match(raw):
-            out.append(raw)
-            i += 1
-            continue
-
-        # Grid table row or line-block.
-        if stripped[0] in "+|":
-            out.append(raw)
-            i += 1
             continue
 
         # Simple table (border of '===' / '---' groups).
