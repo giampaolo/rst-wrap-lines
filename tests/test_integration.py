@@ -30,6 +30,8 @@ import docutils.nodes
 import pytest
 
 import rst_wrap_lines
+from rst_wrap_lines import _DIRECTIVE_RE as _TOOL_DIRECTIVE_RE
+from rst_wrap_lines import _PROSE_BODY_DIRECTIVES
 from rst_wrap_lines import WIDTH
 from rst_wrap_lines import DoctreeParseError
 from rst_wrap_lines import _doctree_diff
@@ -140,11 +142,34 @@ class TestCorpus(BaseTest):
         self.check_all(src, out)
 
 
+def is_prose_directive_fallback(text):
+    """True if *text* is a prose-body directive that docutils dumped
+    as a literal block because it doesn't know the directive.
+
+    These are directives in ``_PROSE_BODY_DIRECTIVES`` (e.g.
+    ``.. function::``, ``.. note::``) — their body is prose that the
+    tool intentionally wraps, so changes are expected.  Code-body
+    directives (``.. testcode::``, ``.. highlight::``, etc.) are NOT
+    excluded.
+    """
+    m = _TOOL_DIRECTIVE_RE.match(text.lstrip())
+    return bool(m) and m.group(1) in _PROSE_BODY_DIRECTIVES
+
+
 def code_blocks_from_tree(tree):
     """Extract code block text from a docutils tree.
 
-    Returns a set of strings (lines rstripped). Excludes
-    unknown-directive fallbacks (text starting with ``..``).
+    Returns a set of strings (lines rstripped). Considers:
+
+    - ``::`` literal blocks
+    - ``.. code-block::``, ``.. code::``, ``.. sourcecode::``
+    - ``>>>`` doctest blocks
+    - Non-prose directive bodies (``.. testcode::``,
+      ``.. highlight::``, ``.. literalinclude::``, etc.)
+
+    Excludes prose-body directive fallbacks (``.. function::``,
+    ``.. note::``, etc.) that docutils misclassifies as literal
+    blocks because it doesn't know the directive.
     """
     blocks = set()
     node_types = (
@@ -153,7 +178,7 @@ def code_blocks_from_tree(tree):
     )
     for node in tree.findall(lambda n: isinstance(n, node_types)):
         text = node.astext()
-        if text.lstrip().startswith(".."):
+        if is_prose_directive_fallback(text):
             continue
         normalized = "\n".join(ln.rstrip() for ln in text.splitlines())
         blocks.add(normalized)

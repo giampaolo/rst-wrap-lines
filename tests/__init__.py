@@ -39,7 +39,7 @@ def has_bare_double_space(line):
     return "  " in _INLINE_MASK_RE.sub("X", line)
 
 
-def _collect_indented_body(lines, i, n, min_indent):
+def collect_indented_body(lines, i, n, min_indent):
     """Collect indented lines starting at *i*.
 
     Returns (block_lines_rstripped, next_i). Stops when a non-blank
@@ -57,7 +57,7 @@ def _collect_indented_body(lines, i, n, min_indent):
     return buf, i
 
 
-def _extract_code_blocks(text):
+def extract_code_blocks(text):
     """Extract code block content from RST text.
 
     Returns a list of block strings (lines rstripped, since the tool
@@ -110,7 +110,7 @@ def _extract_code_blocks(text):
             content_indent = len(first) - len(first.lstrip())
             if content_indent <= introducer_indent:
                 continue
-            buf, i = _collect_indented_body(lines, i, n, content_indent)
+            buf, i = collect_indented_body(lines, i, n, content_indent)
             if buf:
                 blocks.append("\n".join(buf))
             continue
@@ -277,8 +277,8 @@ class BaseTest:
         and doctest blocks. Compares after rstrip per line (the
         tool strips trailing whitespace).
         """
-        src_blocks = _extract_code_blocks(src)
-        out_blocks = _extract_code_blocks(out)
+        src_blocks = extract_code_blocks(src)
+        out_blocks = extract_code_blocks(out)
         out_set = set(out_blocks)
         for i, s in enumerate(src_blocks):
             assert (
