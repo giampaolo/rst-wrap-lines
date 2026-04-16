@@ -117,9 +117,10 @@ fix-all:  ## Run all fixers.
 VERSION = $(shell grep '^version' pyproject.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
 
 lint-release:  ## Run sanity checks against the release / tarball.
+	$(PYTHON) -m validate_pyproject -v pyproject.toml
 	$(MAKE) clean
 	$(PYTHON) -m build
-	$(PYTHON) -m twine check dist/*
+	$(PYTHON) -m twine check --strict dist/*
 	rm -rf /tmp/rstwrap-release-venv
 	$(PYTHON) -m venv /tmp/rstwrap-release-venv
 	/tmp/rstwrap-release-venv/bin/pip install --quiet dist/rstwrap-$(VERSION)-py3-none-any.whl
