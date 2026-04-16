@@ -142,7 +142,15 @@ class TestCorpus(BaseTest):
         # 1. idempotency
         assert wrap_rst(out, join=self.JOIN) == out, "not idempotent"
 
-        # 2. no tool-produced line may exceed the target width.
+        # 2. cross-mode stability: output produced by join=True
+        # should be a fixpoint under join=False (every line is
+        # already within WIDTH, so there is nothing to re-wrap,
+        # and join=False never merges short lines).
+        assert (
+            wrap_rst(out, join=False) == out
+        ), "join=True output is not stable under join=False"
+
+        # 3. no tool-produced line may exceed the target width.
         #    Verbatim passthrough of already-long source lines is OK.
         for line in out.splitlines():
             if line in src_line_set:
@@ -153,7 +161,7 @@ class TestCorpus(BaseTest):
                     f" ({len(line)} > {WIDTH}): {line!r:.80}"
                 )
 
-        # 3. no prose line produced by the tool should contain a bare
+        # 4. no prose line produced by the tool should contain a bare
         #    double-space (spaces inside inline RST constructs are
         #    intentional and excluded from this check). List-item
         #    lines are excluded: the bullet-to-text spacing is
@@ -172,7 +180,7 @@ class TestCorpus(BaseTest):
                     f"tool-produced line has bare double-space: {line!r:.100}"
                 )
 
-        # 4. universal sanity checks.
+        # 5. universal sanity checks.
         self.check_all(src, out)
 
 
