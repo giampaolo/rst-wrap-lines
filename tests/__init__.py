@@ -206,33 +206,6 @@ class BaseTest:
                 text
             ), f"tool-produced list-item line has bare double-space: {line!r}"
 
-    def assert_no_consecutive_blank_lines(self, out):
-        """Assert no consecutive blank lines at column 0.
-
-        The tool collapses multiple top-level blank lines into one.
-        Blank lines inside indented content (literal blocks, code
-        blocks, directive bodies) are preserved verbatim and excluded
-        from this check.
-        """
-        out_lines = out.splitlines()
-        for i in range(len(out_lines) - 1):
-            a, b = out_lines[i], out_lines[i + 1]
-            if not a.strip() and not b.strip():
-                # Both blank — check they are not inside indented
-                # content. Look backwards for context: if the most
-                # recent non-blank line was indented, we are inside a
-                # verbatim block.
-                inside_indented = False
-                for j in range(i - 1, -1, -1):
-                    if out_lines[j].strip():
-                        if out_lines[j][:1] in {" ", "\t"}:
-                            inside_indented = True
-                        break
-                if not inside_indented:
-                    raise AssertionError(
-                        f"consecutive blank lines at lines {i + 1}-{i + 2}"
-                    )
-
     def assert_hyperlink_targets_unchanged(self, src, out):
         """Assert every hyperlink target line in src appears in out.
 
