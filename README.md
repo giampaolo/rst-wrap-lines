@@ -3,9 +3,9 @@
 A command-line tool to wrap prose paragraphs in reStructuredText (.rst)
 files to a maximum line width.
 
-Only prose paragraphs and list items are re-wrapped. Everything else
-(directives, literal blocks, tables, section underlines, comments, indented
-blocks) is left unchanged.
+Only prose paragraphs and list items are wrapped. Everything else (directives,
+literal blocks, tables, section underlines, comments, indented blocks) is left
+unchanged.
 
 ```diff
 - This is a very long paragraph that goes way beyond the standard seventy-nine characters and really should be wrapped for better readability in a terminal or text editor.
@@ -17,8 +17,7 @@ blocks) is left unchanged.
 Primary workflows:
 
 - Local: format `.rst` files automatically on save in your editor.
-- Remote: enforce consistent line width in CI pipelines using the `--check`
-  flag.
+- CI: enforce consistent line width using the --check flag.
 
 ## Installation
 
@@ -47,19 +46,18 @@ Options:
 - `--color`: colorize diff output (`auto`, `always`, `never`; default: `auto`)
 - `--check`: exit with code 1 if any file would be changed; don't write
 - `--join` / `--no-join`: merge short consecutive lines within a paragraph into
-  one line, up to the target width (default: on). Use `--no-join` to only wrap
-  over-width lines.
+  a single line (up to the target width).
 - `--safe`: after wrapping, parse both the input and the output with
   [docutils](https://docutils.sourceforge.io/), and skip any file whose
-  document tree would change (printing a diff to stderr, exit code 1). Requires
-  `pip install 'rstwrap[safe]'`.
+  document tree would change (prints a diff to stderr and exits with code 1).
+  Requires `pip install 'rstwrap[safe]'`.
 - `-q`, `--quiet`: suppress informational output.
 - `--version`: print the version and exit
 
 ## Editor integration
 
 Use `-` instead of a file path to read from stdin and write to stdout.
-This lets you hook it into any editor that can pipe the current buffer
+This lets you integrate it into any editor that can pipe the current buffer
 through a shell command, and format `.rst` files on save.
 
 ### Vim / Neovim
@@ -114,9 +112,9 @@ With the [Fmt](https://packagecontrol.io/packages/Fmt) plugin, add to
 
 ## GitHub Actions
 
-Drop the following workflow into `.github/workflows/rstwrap.yml` to fail
-CI on any `.rst` file that isn't already wrapped. Adjust `docs/` to wherever
-your `.rst` files live.
+Add the following workflow into `.github/workflows/rstwrap.yml` to fail CI for
+any `.rst` file that isn't properly wrapped. Adjust `docs/` to wherever your
+`.rst` files live.
 
 ```yaml
 name: rstwrap
@@ -190,8 +188,8 @@ configurable in pyproject.toml — they're run modes, not project policy.
 
 ## What gets formatted
 
-Beyond wrapping, the tool applies these normalizations everywhere (including
-lines that already fit within the target width):
+Beyond wrapping, the tool also applies these normalizations everywhere
+(including lines that already fit within the target width):
 
 - **Double or more spaces** in prose are collapsed
 
@@ -207,40 +205,37 @@ lines that already fit within the target width):
   + Some text with trailing spaces.
   ```
 
-- **`\r\n` Windows line endings** are converted to `\n` (UNIX)
+- **`\r\n` (Windows line endings)** are converted to `\n` (UNIX)
 
 ## What is left untouched
 
-- Literal blocks (`.. code-block::`, `::` blocks)
+- Code blocks (`.. code-block::`, `::` blocks)
 - Tables (grid and simple)
 - Section titles and underlines
 - Comments, hyperlink targets, substitution definitions
 - Field lists (`:param foo:`, `:type bar:`)
-- Definition list terms and their bodies
 - Option list items (`-x`, `--foo`)
 - Block quotes
-
-Inline RST constructs that contain internal whitespace (`` ``like this`` ``,
-``:role:`display <target>` ``, ``*emphasis*``, ``**bold**``, etc.) are treated
-as atomic tokens and never broken across lines. Spaces inside inline constructs
-are left intact.
+- Inline RST constructs (``:role:`display <target>` ``, ``*emphasis*``,
+  ``**bold**``, etc.) are treated as atomic tokens: they are never split across
+  lines, and their internal whitespace is preserved.
 
 ## Tested against real-world docs
 
-This tool fills a very specific niche: formatting reStructuredText (RST)
+This tool targets a very specific niche: formatting reStructuredText (RST)
 **without breaking the semantic structure of the document**. The integration
 test suite runs against a large corpus of real-world `.rst` files (~7800 in
 total) from several upstream projects:
 
-- [Linux](https://github.com/torvalds/linux/tree/master/Documentation) (~3900 files)
-- [Salt](https://github.com/saltstack/salt/tree/master/doc) (~1100 files)
-- [Python PEPs](https://github.com/python/peps/tree/main/peps) (~740 files)
 - [CPython](https://github.com/python/cpython/tree/main/Doc) (~550 files)
+- [Linux](https://github.com/torvalds/linux/tree/master/Documentation) (~3900 files)
+- [Python PEPs](https://github.com/python/peps/tree/main/peps) (~740 files)
+- [Sphinx](https://github.com/sphinx-doc/sphinx/tree/master/doc) (~150 files)
+- [Salt](https://github.com/saltstack/salt/tree/master/doc) (~1100 files)
 - [Ansible](https://github.com/ansible/ansible-documentation/tree/devel/docs/docsite/rst) (~480 files)
 - [NumPy](https://github.com/numpy/numpy/tree/main/doc/source) (~340 files)
 - [pytest](https://github.com/pytest-dev/pytest/tree/main/doc/en) (~260 files)
 - [SQLAlchemy](https://github.com/sqlalchemy/sqlalchemy/tree/main/doc/build) (~200 files)
-- [Sphinx](https://github.com/sphinx-doc/sphinx/tree/master/doc) (~150 files)
 
 For every file the suite verifies:
 
@@ -250,11 +245,11 @@ For every file the suite verifies:
   passthrough of already-long source lines is allowed).
 - **No double spaces**: no tool-produced prose line contains a bare
   double space.
-- **Document tree invariant**: parsing the original and the wrapped
-  file with [docutils](https://docutils.sourceforge.io/) produces
-  identical document trees (after normalising intra-node whitespace).
-  This confirms that rewrapping prose never alters headings, directives,
-  code blocks, hyperlinks, or any other structural element.
+- **Document tree invariant**: parsing the original and the wrapped file with
+  [docutils](https://docutils.sourceforge.io/) produces identical document
+  trees (after normalising intra-node whitespace). This confirms that wrapping
+  prose never alters headings, directives, code blocks, hyperlinks, or any
+  other structural element.
 
 ## License
 
