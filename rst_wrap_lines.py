@@ -423,6 +423,20 @@ def _handle_quoted_literal_block(lines, i, n):
     return emitted, i
 
 
+def _handle_doctest(lines, i, n):
+    """Collect a doctest block verbatim.
+
+    A doctest block is a run of ``>>>`` prompts, ``...`` continuation
+    lines, and interleaved output lines. It ends at the first blank
+    line.
+    """
+    emitted = []
+    while i < n and lines[i].strip():
+        emitted.append(lines[i])
+        i += 1
+    return emitted, i
+
+
 def _prev_nonblank_ends_with_colons(out):
     """True if the last non-blank line in *out* ends with ``::``."""
     for ln in reversed(out):
@@ -609,16 +623,13 @@ def _handle_prose(lines, i, n, width, join):
 # ---------------------------------------------------------------------------
 
 
-def wrap_rst(source, width=WIDTH, join=True):
-    """Wrap prose paragraphs to *width* and remove double spaces.
+def _prepare_lines(source):
+    """Split *source* into lines and strip trailing whitespace.
 
-    With *join* True, short consecutive lines inside a prose paragraph
-    or list item are merged onto one line (up to the target width).
-    Default False preserves the existing line breaks.
+    Trailing whitespace is never meaningful in RST (the doctree
+    ignores it) and stripping here means downstream handlers can't
+    accidentally preserve it.
     """
-    # Strip trailing whitespace from every line up front. It's never
-    # meaningful in RST (the doctree ignores it) and stripping here
-    # means downstream handlers can't accidentally preserve it.
     lines = [ln.rstrip() for ln in source.splitlines()]
     # Edge case: if the source ends with a whitespace-only "line"
     # without a terminating newline (e.g. ``"foo\n   "``), splitlines
@@ -629,7 +640,22 @@ def wrap_rst(source, width=WIDTH, join=True):
     if not source.endswith("\n"):
         while lines and not lines[-1]:
             lines.pop()
+    return lines
+
+
+def _rewrite_blocks(lines, width, join):
+    """Classify each block and wrap prose paragraphs.
+
+    This is the core dispatch loop: it walks *lines*, identifies the
+    RST construct each line belongs to, and either passes the block
+    through verbatim or delegates to a ``_handle_*`` function that
+    re-wraps it. Returns ``(out, protected)`` where *out* is the
+    list of output lines and *protected* is the set of indices in
+    *out* that belong to verbatim blocks whose content must never
+    be modified by later formatting passes (e.g. simple tables).
+    """
     out = []
+    protected = set()
     i = 0
     n = len(lines)
 
@@ -713,8 +739,10 @@ def wrap_rst(source, width=WIDTH, join=True):
 
         # Simple table (border of '===' / '---' groups).
         if _is_simple_table_border(raw):
+            start = len(out)
             emitted, i = _handle_simple_table(lines, i, n)
             out.extend(emitted)
+            protected.update(range(start, len(out)))
             continue
 
         # Quoted literal block: unindented body introduced by ``::``
@@ -768,21 +796,37 @@ def wrap_rst(source, width=WIDTH, join=True):
 
         # Doctest block: consecutive ``>>>`` / ``...`` / output lines.
         if stripped.startswith(">>> ") or stripped == ">>>":
-            while i < n and lines[i].strip():
-                out.append(lines[i])
-                i += 1
+            emitted, i = _handle_doctest(lines, i, n)
+            out.extend(emitted)
             continue
 
         # Plain prose paragraph.
         emitted, i = _handle_prose(lines, i, n, width, join)
         out.extend(emitted)
 
+    return out, protected
+
+
+def _finalize(out, source):
+    """Join output lines and restore the trailing newline if needed."""
     result = "\n".join(out)
     # splitlines() + '\n'.join() is asymmetric by exactly one trailing
-    # separator: restore it so trailing blank lines are byte-identical.
+    # separator: restore it so trailing blank lines are identical.
     if source.endswith("\n"):
         result += "\n"
     return result
+
+
+def wrap_rst(source, width=WIDTH, join=True):
+    """Wrap prose paragraphs to *width* and remove double spaces.
+
+    With *join* True, short consecutive lines inside a prose paragraph
+    or list item are merged onto one line (up to the target width).
+    Default False preserves the existing line breaks.
+    """
+    lines = _prepare_lines(source)
+    out, _protected = _rewrite_blocks(lines, width, join)
+    return _finalize(out, source)
 
 
 # ---------------------------------------------------------------------------
