@@ -163,3 +163,27 @@ class TestPassthrough(BaseTest):
         out = self.wrap(src)
         assert out == src
         self.check_all(src, out)
+
+    def test_tab_indented_directive_body_unchanged(self):
+        src = (
+            ".. note::\n"
+            "\tThis line is indented with a tab.\n"
+            "\tAnother line with a tab.\n"
+        )
+        out = self.wrap(src)
+        assert out == src
+        self.check_all(src, out)
+
+    def test_sphinx_field_list_indented_unchanged(self):
+        # Sphinx-style :param: fields inside a directive body are
+        # indented, so they pass through verbatim.
+        src = (
+            ".. py:function:: foo(x)\n"
+            "\n"
+            "   :param very_long_parameter_name: This is a long"
+            " description that should not be wrapped.\n"
+            "   :type very_long_parameter_name: str\n"
+        )
+        out = self.wrap(src)
+        assert out == src
+        self.check_all(src, out)

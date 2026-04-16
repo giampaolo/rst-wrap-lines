@@ -129,6 +129,33 @@ class TestListItems(BaseTest):
         assert out.strip().startswith("Some prose")
         self.check_all(src, out)
 
+    def test_bullet_extra_spacing_preserved(self):
+        # Extra spaces between bullet marker and text (3+ spaces)
+        # must be preserved -- the tool should not normalize them.
+        src = (
+            "-   This is a bullet with extra spaces after the"
+            " marker.\n"
+            "    Continuation line aligned to the text column.\n"
+        )
+        out = self.wrap(src)
+        assert out == src
+        self.check_all(src, out)
+
+    def test_nested_constructs_in_list_item(self):
+        # A list item containing emphasis, inline code, and a role.
+        # All inline constructs must survive wrapping as atomic
+        # tokens.
+        src = (
+            "- This list item has *emphasis*, ``inline code``,"
+            " and a :ref:`long_reference_name` that must not"
+            " break.\n"
+        )
+        out = self.wrap(src)
+        assert "*emphasis*" in out
+        assert "``inline code``" in out
+        assert ":ref:`long_reference_name`" in out
+        self.check_all(src, out)
+
     def test_bullet_with_long_hyperlink_continuation_not_lengthened(self):
         # A bullet whose continuation contains a long hyperlink that was
         # manually split across lines. Joining produces an un-splittable
