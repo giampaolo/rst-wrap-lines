@@ -168,15 +168,10 @@ class TestDocutils(BaseTest):
     once, then check two invariants:
     1. The normalised doctree is unchanged.
     2. Every code block in the source appears unchanged in the output.
-
-    Runs with ``join=True`` so the short-line merge path is held to
-    the same doctree-invariant as the default wrap path.
     """
 
-    JOIN = True
-
     @pytest.mark.parametrize("path", _RST_FILE_PARAMS)
-    def test_doctree_unchanged(self, path):
+    def test_it(self, path):
         src = path.read_text(encoding="utf-8")
         out = wrap_rst(src, join=self.JOIN)
         if src == out:
@@ -190,15 +185,15 @@ class TestDocutils(BaseTest):
             assert exc_info.value.code == 1
             return pytest.skip(f"docutils could not parse: {e}")
 
-        # Code block preservation (before _norm mutates copies).
+        # Test the doctree is unchanged.
+        diff = _doctree_diff(src, out, src_tree=src_tree, dst_tree=out_tree)
+        if diff is not None:
+            return pytest.fail(f"doctree changed:\n{diff}")
+
+        # Test code blocks are unchanged.
         src_blocks = code_blocks_from_tree(src_tree)
         out_blocks = code_blocks_from_tree(out_tree)
         for block in src_blocks:
             assert (
                 block in out_blocks
             ), f"code block changed or missing in output:\n{block}"
-
-        # Doctree structural diff.
-        diff = _doctree_diff(src, out, src_tree=src_tree, dst_tree=out_tree)
-        if diff is not None:
-            return pytest.fail(diff)
