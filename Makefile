@@ -40,6 +40,9 @@ test-parallel:  ## Run all tests in parallel.
 test-regressions:  ## Run only the local regression fixture tests.
 	$(PYTHON) -m pytest -k "local/" tests/test_integration.py $(ARGS)
 
+test-docutils:
+	$(PYTHON) -m pytest -k "TestDocutils" $(ARGS)
+
 # --- corpus integration tests
 
 test-cpython:
