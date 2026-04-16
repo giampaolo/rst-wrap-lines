@@ -35,7 +35,7 @@ test:  ## Run tests.
 	$(PYTHON) -m pytest $(ARGS)
 
 test-parallel:  ## Run all tests in parallel.
-	$(MAKE) test ARGS="-n auto" $(ARGS)
+	$(PYTHON) -m pytest -p xdist -n auto --dist loadgroup $(ARGS)
 
 test-regressions:  ## Run only the local regression fixture tests.
 	$(PYTHON) -m pytest -k "local/" tests/test_integration.py $(ARGS)
