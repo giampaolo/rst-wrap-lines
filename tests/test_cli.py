@@ -116,6 +116,24 @@ class TestDiff(_CLITestBase):
         assert rst_wrap_lines.DIFF is True
 
 
+class TestColor(_CLITestBase):
+    """``--color``."""
+
+    def test_color_always(self, monkeypatch, capsys):
+        long_line = "word " * 20 + "\n"
+        monkeypatch.setattr("sys.stdin", io.StringIO(long_line))
+        rst_wrap_lines.main(["--diff", "--color", "always", "-"])
+        out = capsys.readouterr().out
+        assert "\033[" in out
+
+    def test_color_never(self, monkeypatch, capsys):
+        long_line = "word " * 20 + "\n"
+        monkeypatch.setattr("sys.stdin", io.StringIO(long_line))
+        rst_wrap_lines.main(["--diff", "--color", "never", "-"])
+        out = capsys.readouterr().out
+        assert "\033[" not in out
+
+
 class TestQuiet(_CLITestBase):
     """``-q`` / ``--quiet``."""
 
