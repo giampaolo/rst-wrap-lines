@@ -207,6 +207,8 @@ lines that already fit within the target width):
   + Some text with trailing spaces.
   ```
 
+- **`\r\n` Windows line endings** are converted to `\n` (UNIX)
+
 ## What is left untouched
 
 - Literal blocks (`.. code-block::`, `::` blocks)

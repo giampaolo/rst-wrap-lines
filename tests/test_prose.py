@@ -1,5 +1,7 @@
 """Tests for prose-paragraph wrapping behaviour."""
 
+from rst_wrap_lines import wrap_rst
+
 from . import BaseTest
 
 
@@ -92,3 +94,24 @@ class TestProseParagraphs(BaseTest):
         max_out = max(len(x) for x in out.splitlines())
         assert max_out <= max_src
         self.check_all(src, out)
+
+
+class TestCRLF(BaseTest):
+    def test_crlf_normalized_to_lf(self):
+        """CRLF input is silently normalized to LF."""
+        src = "Title\r\n=====\r\n\r\nHello world.\r\n"
+        out = wrap_rst(src)
+        assert "\r" not in out
+        assert out == "Title\n=====\n\nHello world.\n"
+
+    def test_crlf_long_paragraph(self):
+        """CRLF input with a long paragraph wraps correctly."""
+        src = (
+            "This is a very long prose paragraph that clearly exceeds"
+            " the default line length of seventy-nine characters and"
+            " must therefore be wrapped.\r\n"
+        )
+        out = wrap_rst(src)
+        assert "\r" not in out
+        for line in out.splitlines():
+            assert len(line) <= self.WIDTH
