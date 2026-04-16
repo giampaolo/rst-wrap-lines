@@ -28,6 +28,7 @@ addopts = [
     "--no-header",
     "--strict-config",
     "--tb=short",
+    "--verbose",
     "-p instafail",
     "-p no:doctest",
     "-p no:junitxml",

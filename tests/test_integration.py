@@ -138,22 +138,13 @@ class TestCorpus(BaseTest):
         self.check_all(src, out)
 
 
-def extract_doctree_code_blocks(text):
-    """Parse *text* with docutils and return code block contents.
-
-    Returns a set of strings, one per ``literal_block`` or
-    ``doctest_block`` node, with lines rstripped.  Nodes whose text
-    starts with ``..`` are excluded (unknown-directive fallbacks that
-    docutils misclassifies as literal blocks).
-
-    Returns ``None`` if docutils cannot parse the text.
-    """
-    import docutils.nodes
+def parse_doctree(text):
+    """Parse *text* with docutils, return the tree or ``None``."""
     from docutils.core import publish_doctree
     from docutils.utils import Reporter
 
     try:
-        tree = publish_doctree(
+        return publish_doctree(
             text,
             settings_overrides={
                 "report_level": Reporter.SEVERE_LEVEL + 1,
@@ -162,6 +153,16 @@ def extract_doctree_code_blocks(text):
         )
     except (KeyError, TypeError, AttributeError, ValueError):
         return None
+
+
+def code_blocks_from_tree(tree):
+    """Extract code block text from a docutils tree.
+
+    Returns a set of strings (lines rstripped). Excludes
+    unknown-directive fallbacks (text starting with ``..``).
+    """
+    import docutils.nodes
+
     blocks = set()
     node_types = (
         docutils.nodes.literal_block,
@@ -177,12 +178,13 @@ def extract_doctree_code_blocks(text):
 
 
 class TestDocutils(BaseTest):
-    """Verify that wrap_rst() does not alter the docutils document tree.
+    """Verify that wrap_rst() does not alter the docutils document tree
+    or code block content.
 
-    Parse both the original and the wrapped version with docutils and
-    compare the resulting trees (after normalising intra-node
-    whitespace).  A difference means the tool changed something
-    structural, not just prose line lengths.
+    Parse both the original and the wrapped version with docutils
+    once, then check two invariants:
+    1. The normalised doctree is unchanged.
+    2. Every code block in the source appears unchanged in the output.
 
     Runs with ``join=True`` so the short-line merge path is held to
     the same doctree-invariant as the default wrap path.
@@ -199,10 +201,6 @@ class TestDocutils(BaseTest):
         try:
             diff = _doctree_diff(src, out)
         except DoctreeParseError as e:
-            # docutils crashed on the input; we can't verify the
-            # doctree invariant. Before skipping, assert that ``--safe``
-            # refuses to write this file -- the tool must not silently
-            # overwrite content it cannot validate.
             with pytest.raises(SystemExit) as exc_info:
                 rst_wrap_lines.main(["--safe", str(path)])
             assert exc_info.value.code == 1
@@ -210,22 +208,16 @@ class TestDocutils(BaseTest):
         if diff is not None:
             pytest.fail(diff)
 
-    @pytest.mark.parametrize("path", _RST_FILE_PARAMS)
-    def test_code_blocks_unchanged(self, path):
-        """Parse source and output with docutils and verify every
-        code block (literal_block, doctest_block) is byte-identical
-        after rstripping lines.
-        """
-        src = path.read_text(encoding="utf-8")
-        out = wrap_rst(src, join=self.JOIN)
-        if src == out:
+        # Code block preservation: parse once, check every source
+        # code block appears unchanged in the output.
+        src_tree = parse_doctree(src)
+        if src_tree is None:
             return
-        src_blocks = extract_doctree_code_blocks(src)
-        if src_blocks is None:
-            pytest.skip("docutils could not parse source")
-        out_blocks = extract_doctree_code_blocks(out)
-        if out_blocks is None:
-            pytest.skip("docutils could not parse output")
+        out_tree = parse_doctree(out)
+        if out_tree is None:
+            return
+        src_blocks = code_blocks_from_tree(src_tree)
+        out_blocks = code_blocks_from_tree(out_tree)
         for block in src_blocks:
             assert (
                 block in out_blocks
