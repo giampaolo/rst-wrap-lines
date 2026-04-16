@@ -115,3 +115,51 @@ class TestPassthrough(BaseTest):
         out = self.wrap(src)
         assert out == src
         self.check_all(src, out)
+
+    def test_option_list_long_value_unchanged(self):
+        # An option list entry whose description exceeds WIDTH must
+        # not be wrapped.
+        src = (
+            "-o FILE  The output file path which is extremely"
+            " long and goes well beyond the target width of"
+            " seventy-nine characters easily\n"
+        )
+        out = self.wrap(src)
+        assert out == src
+        self.check_all(src, out)
+
+    def test_quoted_literal_block_unchanged(self):
+        src = "Example::\n\n> quoted line one\n> quoted line two\n"
+        out = self.wrap(src)
+        assert out == src
+        self.check_all(src, out)
+
+    def test_doctest_block_unchanged(self):
+        src = ">>> print('hello')\nhello\n"
+        out = self.wrap(src)
+        assert out == src
+        self.check_all(src, out)
+
+    def test_footnote_unchanged(self):
+        src = ".. [1] This is a footnote.\n"
+        out = self.wrap(src)
+        assert out == src
+        self.check_all(src, out)
+
+    def test_citation_unchanged(self):
+        src = ".. [CIT2023] A citation reference.\n"
+        out = self.wrap(src)
+        assert out == src
+        self.check_all(src, out)
+
+    def test_anonymous_hyperlink_target_unchanged(self):
+        src = "__ https://example.com/some/long/path\n"
+        out = self.wrap(src)
+        assert out == src
+        self.check_all(src, out)
+
+    def test_line_block_unchanged(self):
+        src = "| First line of verse.\n| Second line of verse.\n"
+        out = self.wrap(src)
+        assert out == src
+        self.check_all(src, out)
