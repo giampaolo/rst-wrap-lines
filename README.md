@@ -212,18 +212,6 @@ For every file the suite verifies:
   This confirms that rewrapping prose never alters headings, directives,
   code blocks, hyperlinks, or any other structural element.
 
-## Development
-
-```
-make test                # run all tests
-make test-parallel       # same, in parallel (faster)
-make lint-all            # ruff + black (check-only)
-make fix-all             # auto-apply formatter and lint fixes
-```
-
-The first test run clones the external doc repos (sparse, shallow) into
-`/tmp/rst-wrap-lines-<project>/` and reuses them on subsequent runs.
-
 ## License
 
 MIT
