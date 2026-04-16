@@ -4,14 +4,14 @@
 
 Example usages:
 
-    rst-wrap-lines docs/*.rst
-    rst-wrap-lines docs/                # recurse into a directory
-    rst-wrap-lines --check docs/*.rst
-    rst-wrap-lines --diff docs/*.rst    # print unified diff, don't write
-    rst-wrap-lines --width 80 foo.rst
-    rst-wrap-lines --join docs/*.rst    # also merge short lines onto one
-    rst-wrap-lines --safe docs/*.rst    # verify doctree via docutils
-    cat foo.rst | rst-wrap-lines -      # read from stdin, write to stdout
+    rstwrap docs/*.rst
+    rstwrap docs/                # recurse into a directory
+    rstwrap --check docs/*.rst
+    rstwrap --diff docs/*.rst    # print unified diff, don't write
+    rstwrap --width 80 foo.rst
+    rstwrap --join docs/*.rst    # also merge short lines onto one
+    rstwrap --safe docs/*.rst    # verify doctree via docutils
+    cat foo.rst | rstwrap -      # read from stdin, write to stdout
 """
 
 import argparse
@@ -24,9 +24,9 @@ import tomllib
 from pathlib import Path
 
 try:
-    __version__ = importlib.metadata.version("rst-wrap-lines")
+    __version__ = importlib.metadata.version("rstwrap")
 except importlib.metadata.PackageNotFoundError:
-    # Running from source without install (e.g. python3 rst_wrap_lines.py).
+    # Running from source without install (e.g. python3 rstwrap.py).
     __version__ = "unknown"
 
 # ---------------------------------------------------------------------------
@@ -423,6 +423,20 @@ def _handle_quoted_literal_block(lines, i, n):
     return emitted, i
 
 
+def _handle_doctest(lines, i, n):
+    """Collect a doctest block verbatim.
+
+    A doctest block is a run of ``>>>`` prompts, ``...`` continuation
+    lines, and interleaved output lines. It ends at the first blank
+    line.
+    """
+    emitted = []
+    while i < n and lines[i].strip():
+        emitted.append(lines[i])
+        i += 1
+    return emitted, i
+
+
 def _prev_nonblank_ends_with_colons(out):
     """True if the last non-blank line in *out* ends with ``::``."""
     for ln in reversed(out):
@@ -609,16 +623,13 @@ def _handle_prose(lines, i, n, width, join):
 # ---------------------------------------------------------------------------
 
 
-def wrap_rst(source, width=WIDTH, join=True):
-    """Wrap prose paragraphs to *width* and remove double spaces.
+def _prepare_lines(source):
+    """Split *source* into lines and strip trailing whitespace.
 
-    With *join* True, short consecutive lines inside a prose paragraph
-    or list item are merged onto one line (up to the target width).
-    Default False preserves the existing line breaks.
+    Trailing whitespace is never meaningful in RST (the doctree
+    ignores it) and stripping here means downstream handlers can't
+    accidentally preserve it.
     """
-    # Strip trailing whitespace from every line up front. It's never
-    # meaningful in RST (the doctree ignores it) and stripping here
-    # means downstream handlers can't accidentally preserve it.
     lines = [ln.rstrip() for ln in source.splitlines()]
     # Edge case: if the source ends with a whitespace-only "line"
     # without a terminating newline (e.g. ``"foo\n   "``), splitlines
@@ -629,6 +640,79 @@ def wrap_rst(source, width=WIDTH, join=True):
     if not source.endswith("\n"):
         while lines and not lines[-1]:
             lines.pop()
+    return lines
+
+
+def _try_verbatim(raw, stripped, lines, i, n):
+    """Check if line *i* should pass through unchanged.
+
+    Returns ``(emitted_lines, new_i)`` when the line (or pair of lines,
+    for section titles) is a verbatim passthrough, or ``None`` when the
+    caller should try handler dispatch instead.
+    """
+    # Blank line.
+    if not stripped:
+        return [raw], i + 1
+
+    # Indented line: literal block, directive body, nested content,
+    # block quote. (Indented list items are not wrapped; see
+    # _handle_list_run for why.)
+    if raw[:1] in {" ", "\t"}:
+        return [raw], i + 1
+
+    # Anonymous hyperlink target: ``__ URL``. Must be preserved
+    # verbatim -- joining it into surrounding prose would turn the
+    # target definition into garbled text.
+    if stripped.startswith("__ "):
+        return [raw], i + 1
+
+    # Section title followed by an underline of equal/greater
+    # length. Both standard underlines (>=3 chars) and 2-char
+    # underlines (e.g. ``--`` under a 2-letter title like ``CF``)
+    # are accepted.
+    if i + 1 < n and (
+        _is_underline(lines[i + 1]) or _is_short_underline(lines[i + 1])
+    ):
+        ul = lines[i + 1].rstrip()
+        if len(ul) >= len(stripped):
+            return [raw, lines[i + 1]], i + 2
+
+    # Bare underline (overline already handled above).
+    if _is_underline(raw):
+        return [raw], i + 1
+
+    # Bare 2-char underline on its own line (e.g. ``==`` overline
+    # preceding a short title like ``rv``). Without this passthrough
+    # the line falls into prose and merges with the title.
+    if _is_short_underline(raw):
+        return [raw], i + 1
+
+    # Field list item (e.g. ':Author: Giampaolo', ':type foo:').
+    if _FIELD_LIST_RE.match(raw):
+        return [raw], i + 1
+
+    # Option list item (e.g. '-f FILE', '--output FILE').
+    if _OPTION_LIST_RE.match(raw):
+        return [raw], i + 1
+
+    # Grid table row or line-block.
+    if stripped[0] in "+|":
+        return [raw], i + 1
+
+    return None
+
+
+def _rewrite_blocks(lines, width, join):
+    """Classify each block and wrap prose paragraphs.
+
+    This is the core dispatch loop: it walks *lines*, identifies the
+    RST construct each line belongs to, and either passes the block
+    through verbatim or delegates to a ``_handle_*`` function that
+    re-wraps it. Returns ``(out, protected)`` where *out* is the list
+    of output lines and *protected* is the set of indices in *out* that
+    belong to verbatim blocks whose content must never be modified by
+    later formatting passes (e.g. simple tables).
+    """
     out = []
     # Indices in ``out`` that come from verbatim block handlers
     # (simple tables, doctest blocks) whose content must never have
@@ -641,18 +725,11 @@ def wrap_rst(source, width=WIDTH, join=True):
         raw = lines[i]
         stripped = raw.strip()
 
-        # Blank line.
-        if not stripped:
-            out.append(raw)
-            i += 1
-            continue
-
-        # Indented line: literal block, directive body, nested content,
-        # block quote. Pass through verbatim. (Indented list items are
-        # not wrapped; see _handle_list_run for why.)
-        if raw[:1] in {" ", "\t"}:
-            out.append(raw)
-            i += 1
+        # Lines that pass through unchanged.
+        result = _try_verbatim(raw, stripped, lines, i, n)
+        if result is not None:
+            emitted, i = result
+            out.extend(emitted)
             continue
 
         # Explicit markup: directive, comment, target, footnote/citation
@@ -662,63 +739,10 @@ def wrap_rst(source, width=WIDTH, join=True):
             out.extend(emitted)
             continue
 
-        # Anonymous hyperlink target: ``__ URL``. Must be preserved
-        # verbatim -- joining it into surrounding prose would turn the
-        # target definition into garbled text.
-        if stripped.startswith("__ "):
-            out.append(raw)
-            i += 1
-            continue
-
-        # Section title followed by an underline of equal/greater
-        # length. Both standard underlines (>=3 chars) and 2-char
-        # underlines (e.g. ``--`` under a 2-letter title like ``CF``)
-        # are accepted.
-        if i + 1 < n and (
-            _is_underline(lines[i + 1]) or _is_short_underline(lines[i + 1])
-        ):
-            ul = lines[i + 1].rstrip()
-            if len(ul) >= len(stripped):
-                out.extend((raw, lines[i + 1]))
-                i += 2
-                continue
-
-        # Bare underline (overline already handled above).
-        if _is_underline(raw):
-            out.append(raw)
-            i += 1
-            continue
-
-        # Bare 2-char underline on its own line (e.g. ``==`` overline
-        # preceding a short title like ``rv``). Without this passthrough
-        # the line falls into prose and merges with the title.
-        if _is_short_underline(raw):
-            out.append(raw)
-            i += 1
-            continue
-
-        # Field list item (e.g. ':Author: Giampaolo', ':type foo:').
-        if _FIELD_LIST_RE.match(raw):
-            out.append(raw)
-            i += 1
-            continue
-
-        # Option list item (e.g. '-f FILE', '--output FILE').
-        if _OPTION_LIST_RE.match(raw):
-            out.append(raw)
-            i += 1
-            continue
-
-        # Grid table row or line-block.
-        if stripped[0] in "+|":
-            out.append(raw)
-            i += 1
-            continue
-
         # Simple table (border of '===' / '---' groups).
         if _is_simple_table_border(raw):
-            emitted, i = _handle_simple_table(lines, i, n)
             start = len(out)
+            emitted, i = _handle_simple_table(lines, i, n)
             out.extend(emitted)
             protected.update(range(start, len(out)))
             continue
@@ -774,21 +798,27 @@ def wrap_rst(source, width=WIDTH, join=True):
 
         # Doctest block: consecutive ``>>>`` / ``...`` / output lines.
         if stripped.startswith(">>> ") or stripped == ">>>":
-            while i < n and lines[i].strip():
-                out.append(lines[i])
-                i += 1
+            emitted, i = _handle_doctest(lines, i, n)
+            out.extend(emitted)
             continue
 
         # Plain prose paragraph.
         emitted, i = _handle_prose(lines, i, n, width, join)
         out.extend(emitted)
 
-    # Collapse consecutive blank lines into one, but preserve them
-    # inside indented blocks (literal blocks, code blocks, directive
-    # bodies) and protected blocks (simple tables). The rule: when a
-    # duplicate blank is encountered, peek ahead to the next non-blank
-    # line. If it is indented, the blanks lead into (or sit inside)
-    # indented content and must be kept; otherwise collapse.
+    return out, protected
+
+
+def _collapse_blank_lines(out, protected):
+    """Collapse consecutive blank lines into one.
+
+    Blanks are preserved inside indented blocks (literal blocks, code
+    blocks, directive bodies) and protected blocks (simple tables).
+    The rule: when a duplicate blank is encountered, peek ahead to
+    the next non-blank line. If it is indented, the blanks lead into
+    (or sit inside) indented content and must be kept; otherwise
+    collapse.
+    """
     collapsed = []
     for idx, ln in enumerate(out):
         if ln.strip():
@@ -810,13 +840,30 @@ def wrap_rst(source, width=WIDTH, join=True):
                     collapsed.append(ln)
                 continue
             collapsed.append(ln)
+    return collapsed
 
-    result = "\n".join(collapsed)
+
+def _finalize(out, source):
+    """Join output lines and restore the trailing newline if needed."""
+    result = "\n".join(out)
     # splitlines() + '\n'.join() is asymmetric by exactly one trailing
-    # separator: restore it so trailing blank lines are byte-identical.
+    # separator: restore it so trailing blank lines are identical.
     if source.endswith("\n"):
         result += "\n"
     return result
+
+
+def wrap_rst(source, width=WIDTH, join=True):
+    """Wrap prose paragraphs to *width* and remove double spaces.
+
+    With *join* True, short consecutive lines inside a prose paragraph
+    or list item are merged onto one line (up to the target width).
+    Default False preserves the existing line breaks.
+    """
+    lines = _prepare_lines(source)
+    out, protected = _rewrite_blocks(lines, width, join)
+    out = _collapse_blank_lines(out, protected)
+    return _finalize(out, source)
 
 
 # ---------------------------------------------------------------------------
@@ -844,7 +891,7 @@ def _parse_rst(text):
     except ImportError:
         print(
             "--safe requires docutils; install with:"
-            "  pip install rst-wrap-lines[safe]",
+            "  pip install rstwrap[safe]",
             file=sys.stderr,
         )
         sys.exit(2)
@@ -1030,7 +1077,7 @@ def _process_stdin():
     return changed, False
 
 
-# Options that ``[tool.rst-wrap-lines]`` in pyproject.toml may set,
+# Options that ``[tool.rstwrap]`` in pyproject.toml may set,
 # mapped to the type each value must have. ``check`` and ``diff`` are
 # intentionally CLI-only -- they're per-invocation flags, not project
 # policy.
@@ -1058,7 +1105,7 @@ def _config_error(msg):
 
 
 def _load_pyproject_config():
-    """Return validated options from ``[tool.rst-wrap-lines]`` in the
+    """Return validated options from ``[tool.rstwrap]`` in the
     nearest pyproject.toml, or an empty dict if none is found.
 
     Unknown keys and wrong-typed values are fatal: print an error to
@@ -1073,25 +1120,25 @@ def _load_pyproject_config():
             data = tomllib.load(f)
     except (OSError, tomllib.TOMLDecodeError) as e:
         return _config_error(f"cannot read {path}: {e}")
-    section = data.get("tool", {}).get("rst-wrap-lines", {})
+    section = data.get("tool", {}).get("rstwrap", {})
     valid = {}
     for k, v in section.items():
         expected = _VALID_PYPROJECT_KEYS.get(k)
         if expected is None:
             valid_keys = ", ".join(sorted(_VALID_PYPROJECT_KEYS))
             return _config_error(
-                f"unknown key in [tool.rst-wrap-lines] in {path}: {k!r}"
+                f"unknown key in [tool.rstwrap] in {path}: {k!r}"
                 f" (valid keys: {valid_keys})"
             )
         # bool is a subclass of int -- reject True/False for width.
         if expected is int and (isinstance(v, bool) or not isinstance(v, int)):
             return _config_error(
-                f"[tool.rst-wrap-lines].{k} in {path} must be an integer,"
+                f"[tool.rstwrap].{k} in {path} must be an integer,"
                 f" got {type(v).__name__}"
             )
         if expected is bool and not isinstance(v, bool):
             return _config_error(
-                f"[tool.rst-wrap-lines].{k} in {path} must be a boolean,"
+                f"[tool.rstwrap].{k} in {path} must be a boolean,"
                 f" got {type(v).__name__}"
             )
         valid[k] = v
@@ -1170,7 +1217,7 @@ def parse_cli(args=None):
             " use '-' to read from stdin and write to stdout"
         ),
     )
-    # Apply [tool.rst-wrap-lines] from pyproject.toml as defaults; the
+    # Apply [tool.rstwrap] from pyproject.toml as defaults; the
     # CLI then overrides anything explicitly passed.
     config = _load_pyproject_config()
     if config:
