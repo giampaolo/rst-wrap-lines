@@ -35,6 +35,7 @@ except importlib.metadata.PackageNotFoundError:
 
 WIDTH = 79
 CHECK = False
+COLOR = False
 DIFF = False
 JOIN = False
 SAFE = False
@@ -55,6 +56,32 @@ IGNORED_DIRS = frozenset([
     "build",
     "dist",
 ])
+
+# ---------------------------------------------------------------------------
+# Colored diff output
+# ---------------------------------------------------------------------------
+
+_RESET = "\033[0m"
+_RED = "\033[31m"
+_GREEN = "\033[32m"
+_CYAN = "\033[36m"
+_BOLD = "\033[1m"
+
+
+def _colorize_diff(lines):
+    """Yield diff lines with ANSI color escapes."""
+    for line in lines:
+        if line.startswith(("---", "+++")):
+            yield _BOLD + line + _RESET
+        elif line.startswith("-"):
+            yield _RED + line + _RESET
+        elif line.startswith("+"):
+            yield _GREEN + line + _RESET
+        elif line.startswith("@@"):
+            yield _CYAN + line + _RESET
+        else:
+            yield line
+
 
 # ---------------------------------------------------------------------------
 # Inline-token recognition
@@ -888,14 +915,15 @@ def _process(src, *, label, diff_dst_label, write_fn, log_changes):
         return changed, True
     if DIFF:
         if changed:
-            sys.stdout.writelines(
-                difflib.unified_diff(
-                    src.splitlines(keepends=True),
-                    dst.splitlines(keepends=True),
-                    fromfile=label,
-                    tofile=diff_dst_label,
-                )
+            diff_lines = difflib.unified_diff(
+                src.splitlines(keepends=True),
+                dst.splitlines(keepends=True),
+                fromfile=label,
+                tofile=diff_dst_label,
             )
+            if COLOR:
+                diff_lines = _colorize_diff(diff_lines)
+            sys.stdout.writelines(diff_lines)
         return changed, False
     if CHECK:
         if changed and log_changes and not QUIET:
@@ -999,7 +1027,7 @@ def _load_pyproject_config():
 
 
 def parse_cli(args=None):
-    global WIDTH, CHECK, DIFF, JOIN, SAFE, QUIET, PATHS
+    global WIDTH, CHECK, COLOR, DIFF, JOIN, SAFE, QUIET, PATHS
 
     parser = argparse.ArgumentParser(
         description=__doc__,
@@ -1026,6 +1054,12 @@ def parse_cli(args=None):
         "--diff",
         action="store_true",
         help="print a unified diff instead of writing files",
+    )
+    parser.add_argument(
+        "--color",
+        choices=["auto", "always", "never"],
+        default="auto",
+        help="colorize diff output (default: auto)",
     )
     parser.add_argument(
         "-q",
@@ -1076,6 +1110,12 @@ def parse_cli(args=None):
     JOIN = args.join
     SAFE = args.safe
     QUIET = args.quiet
+    if args.color == "always":
+        COLOR = True
+    elif args.color == "never":
+        COLOR = False
+    else:
+        COLOR = sys.stdout.isatty()
 
     stdin_requested = any(str(p) == "-" for p in args.paths)
     if stdin_requested and len(args.paths) > 1:

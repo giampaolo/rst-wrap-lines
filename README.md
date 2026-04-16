@@ -44,6 +44,7 @@ Options:
 
 - `-w`, `--width`: maximum line length (default: 79)
 - `--diff`: print a unified diff instead of writing files
+- `--color`: colorize diff output (`auto`, `always`, `never`; default: `auto`)
 - `--check`: exit with code 1 if any file would be changed; don't write
 - `--join`: also merge short consecutive lines within a paragraph into one
   (up to the target width).
