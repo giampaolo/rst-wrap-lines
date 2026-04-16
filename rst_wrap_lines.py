@@ -949,13 +949,29 @@ def _process_file(path):
 
 def _process_stdin():
     src = sys.stdin.read()
-    return _process(
-        src,
-        label="<stdin>",
-        diff_dst_label="<stdout>",
-        write_fn=sys.stdout.write,
-        log_changes=False,
-    )
+    dst = wrap_rst(src, WIDTH, join=JOIN)
+    changed = dst != src
+    if _safety_check_failed(src, dst, "<stdin>"):
+        return changed, True
+    if DIFF:
+        if changed:
+            diff_lines = difflib.unified_diff(
+                src.splitlines(keepends=True),
+                dst.splitlines(keepends=True),
+                fromfile="<stdin>",
+                tofile="<stdout>",
+            )
+            if COLOR:
+                diff_lines = _colorize_diff(diff_lines)
+            sys.stdout.writelines(diff_lines)
+        return changed, False
+    if CHECK:
+        return changed, False
+    # Always write to stdout so that editor integrations (which
+    # replace the buffer with stdout) don't blank the view when the
+    # file is already clean.
+    sys.stdout.write(dst)
+    return changed, False
 
 
 # Options that ``[tool.rst-wrap-lines]`` in pyproject.toml may set,

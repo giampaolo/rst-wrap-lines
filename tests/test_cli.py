@@ -229,7 +229,6 @@ class TestStdin(_CLITestBase):
     """``-`` (stdin / stdout)."""
 
     def test_format(self, monkeypatch, capsys):
-        # `-` reads from stdin, writes formatted output to stdout.
         long_line = "word " * 20 + "\n"
         monkeypatch.setattr("sys.stdin", io.StringIO(long_line))
         rst_wrap_lines.main(["-"])
@@ -237,6 +236,15 @@ class TestStdin(_CLITestBase):
         assert out != long_line
         for line in out.splitlines():
             assert len(line) <= 79
+
+    def test_format_clean_file_echoed(self, monkeypatch, capsys):
+        # Already-clean input must still be written to stdout so
+        # editor integrations (Vim %!, sublime-fmt, etc.) don't
+        # blank the buffer.
+        src = "Short line.\n"
+        monkeypatch.setattr("sys.stdin", io.StringIO(src))
+        rst_wrap_lines.main(["-"])
+        assert capsys.readouterr().out == src
 
     def test_check_clean_exits_0(self, monkeypatch, capsys):
         monkeypatch.setattr("sys.stdin", io.StringIO("Short.\n"))
