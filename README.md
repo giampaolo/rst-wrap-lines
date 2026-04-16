@@ -198,7 +198,9 @@ Beyond wrapping, the tool also applies these normalizations everywhere
   + hello world
   ```
 
-- **Consecutive blank lines** between top-level blocks are collapsed into one
+- **Consecutive blank lines** between top-level paragraphs are collapsed
+  into one. Blank lines inside indented content (literal blocks,
+  directive bodies, simple tables) are preserved verbatim.
 
   ```diff
   - Paragraph one.

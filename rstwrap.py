@@ -714,9 +714,9 @@ def _rewrite_blocks(lines, width, join):
     later formatting passes (e.g. simple tables).
     """
     out = []
-    # Indices in ``out`` that come from verbatim block handlers
-    # (simple tables, doctest blocks) whose content must never have
-    # blank lines collapsed.
+    # Indices in ``out`` that come from simple-table blocks, whose
+    # internal blank lines (between row groups) must never be
+    # collapsed by the later ``_collapse_blank_lines`` pass.
     protected = set()
     i = 0
     n = len(lines)
