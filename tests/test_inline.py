@@ -60,9 +60,8 @@ class TestInlineMarkup(BaseTest):
         self.check_all(src, out)
 
     def test_long_hyperlink_at_width_boundary(self):
-        # A hyperlink token that can't be split is forced to straddle
-        # the width boundary. The token must survive intact -- the
-        # tool must never break it across lines.
+        # Unsplittable hyperlink forced across the width boundary --
+        # must survive as one token.
         long_link = (
             "`documentation <https://example.com/very/long/path"
             "/that/exceeds/the/target/width>`_"

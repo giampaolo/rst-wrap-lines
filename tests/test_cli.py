@@ -153,9 +153,8 @@ class TestQuiet(_CLITestBase):
         long_line = "word " * 20 + "\n"
         self.rst.write_text(long_line, encoding="utf-8")
         rstwrap.main(["--quiet", str(self.rst)])
-        # File was rewritten...
+        # Rewritten, but no "reformatted FILE" line printed.
         assert self.rst.read_text(encoding="utf-8") != long_line
-        # ...but no "reformatted FILE" line was printed.
         assert "reformatted" not in capsys.readouterr().out
 
     def test_suppresses_would_reformat_message(self, capsys):
@@ -163,9 +162,8 @@ class TestQuiet(_CLITestBase):
         self.rst.write_text(long_line, encoding="utf-8")
         with pytest.raises(SystemExit) as exc_info:
             rstwrap.main(["--quiet", "--check", str(self.rst)])
-        # Exit code still signals "would change".
+        # Exit 1 signals "would change", but no per-file line printed.
         assert exc_info.value.code == 1
-        # But no "would reformat FILE" line was printed.
         assert "would reformat" not in capsys.readouterr().out
 
     def test_short_alias(self, capsys):
@@ -179,9 +177,8 @@ class TestSummary(_CLITestBase):
     """End-of-run summary line on multi-file invocations."""
 
     def _make_files(self, n_long, n_short):
-        """Create *n_long* over-width and *n_short* short .rst files.
-
-        Returns the list of path strings.
+        """Create *n_long* over-width + *n_short* short .rst files
+        and return their paths as strings.
         """
         long_line = "word " * 20 + "\n"
         paths = []
@@ -258,7 +255,6 @@ class TestStdin(_CLITestBase):
         with pytest.raises(SystemExit) as exc_info:
             rstwrap.main(["--check", "-"])
         assert exc_info.value.code == 1
-        # No formatted output to stdout in check mode.
         assert capsys.readouterr().out == ""
 
     def test_diff(self, monkeypatch, capsys):
@@ -300,19 +296,16 @@ class TestSafe:
         assert "paragraph" in diff or "title" in diff
 
     def test_main_safe_flag_accepted(self, tmp_path):
-        # --safe runs without error on a file whose wrap output is
-        # doctree-equivalent (the common case).
+        # --safe on a doctree-equivalent wrap: writes as normal.
         rst = tmp_path / "sample.rst"
         long_line = "word " * 20 + "\n"
         rst.write_text(long_line, encoding="utf-8")
         rstwrap.main(["--safe", str(rst)])
-        # File was rewritten; content changed.
         assert rst.read_text(encoding="utf-8") != long_line
 
     def test_main_safe_refuses_write_on_mismatch(self, tmp_path, monkeypatch):
-        # Simulate a buggy wrap by monkey-patching wrap_rst to return
-        # something structurally different from the source. --safe must
-        # detect the mismatch, leave the file unchanged, and exit 1.
+        # Monkey-patch wrap_rst to return a structurally different
+        # doctree -- --safe detects, refuses to write, exits 1.
         rst = tmp_path / "sample.rst"
         src = "Hello world.\n"
         rst.write_text(src, encoding="utf-8")
@@ -345,8 +338,7 @@ class TestPyprojectConfig:
         )
 
     def test_no_pyproject_uses_defaults(self):
-        # No pyproject.toml in tmp_path or its parents-up-to-tmp.
-        # /tmp itself has no pyproject.toml so we get plain defaults.
+        # No pyproject.toml anywhere up to /tmp -- plain defaults.
         rstwrap.parse_cli([str(self.rst)])
         assert rstwrap.WIDTH == 79
         assert rstwrap.JOIN is True

@@ -70,8 +70,7 @@ _REPOS = [
 
 
 def _clone_repo(url, clone_dir, branch, sparse_dir):
-    """Clone *url* into *clone_dir* (sparse, *sparse_dir* only).
-
+    """Sparse-clone *url* into *clone_dir* (only *sparse_dir*).
     Skipped if the directory already exists.
     """
     if clone_dir.exists():
@@ -100,8 +99,8 @@ def _clone_repo(url, clone_dir, branch, sparse_dir):
 
 
 def pytest_sessionstart(session):
-    """Clone all external repos before collection so that parametrize
-    lists are available when pytest-xdist spawns workers.
+    """Clone external repos before collection so parametrize lists
+    are ready when pytest-xdist spawns workers.
     """
     for repo in _REPOS:
         _clone_repo(**repo)

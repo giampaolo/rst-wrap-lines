@@ -130,10 +130,8 @@ class TestListItems(BaseTest):
         self.check_all(src, out)
 
     def test_bullet_extra_spacing_preserved(self):
-        # Extra spaces between bullet marker and text (3+ spaces)
-        # must be preserved -- the tool should not normalize them
-        # to a single space, and the continuation must stay aligned
-        # to the text column.
+        # Extra spaces between bullet and text (``-   text``) stay,
+        # and the continuation stays aligned to the text column.
         src = (
             "-   This is a bullet with extra spaces after the"
             " marker.\n"
@@ -145,9 +143,8 @@ class TestListItems(BaseTest):
         self.check_all(src, out)
 
     def test_nested_constructs_in_list_item(self):
-        # A list item containing emphasis, inline code, and a role.
-        # All inline constructs must survive wrapping as atomic
-        # tokens.
+        # List item with emphasis, inline code, and a role -- each
+        # must survive wrapping as an atomic token.
         src = (
             "- This list item has *emphasis*, ``inline code``,"
             " and a :ref:`long_reference_name` that must not"

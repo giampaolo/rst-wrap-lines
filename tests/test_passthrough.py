@@ -17,10 +17,8 @@ class TestPassthrough(BaseTest):
         self.check_all(src, out)
 
     def test_short_underline_not_treated_as_title(self):
-        # An underline shorter than the preceding text is not a title
-        # (docutils treats it as prose). The tool must not merge the
-        # text line with the underline as if it were a title, and must
-        # not merge the underline into following prose either.
+        # Underline shorter than the text above is parsed as prose by
+        # docutils; must not merge with title or following prose.
         src = "Long line of text that is not a title\n---\nMore prose.\n"
         out = self.wrap(src)
         assert out == src
@@ -89,8 +87,7 @@ class TestPassthrough(BaseTest):
         self.check_all(src, out)
 
     def test_field_list_long_value_unchanged(self):
-        # A field list entry whose value exceeds WIDTH must not be
-        # wrapped -- the tool should not treat it as prose.
+        # A long field value must stay verbatim, not be treated as prose.
         src = (
             ":Author: A very long author name that goes on"
             " and on and exceeds the target width of seventy-nine"
@@ -117,8 +114,7 @@ class TestPassthrough(BaseTest):
         self.check_all(src, out)
 
     def test_option_list_long_value_unchanged(self):
-        # An option list entry whose description exceeds WIDTH must
-        # not be wrapped.
+        # Long option description must stay verbatim.
         src = (
             "-o FILE  The output file path which is extremely"
             " long and goes well beyond the target width of"
@@ -175,8 +171,8 @@ class TestPassthrough(BaseTest):
         self.check_all(src, out)
 
     def test_sphinx_field_list_indented_unchanged(self):
-        # Sphinx-style :param: fields inside a directive body are
-        # indented, so they pass through verbatim.
+        # Sphinx ``:param:`` fields inside a directive body are indented
+        # and pass through verbatim.
         src = (
             ".. py:function:: foo(x)\n"
             "\n"

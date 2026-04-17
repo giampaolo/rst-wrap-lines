@@ -6,10 +6,6 @@ from . import BaseTest
 
 
 class TestJoin(BaseTest):
-    """Exercise the opt-in ``join=True`` mode: short consecutive lines
-    inside a paragraph are merged onto one (up to the target width).
-    """
-
     JOIN = True
 
     def test_short_lines_joined(self):
