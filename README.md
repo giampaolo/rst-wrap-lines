@@ -159,7 +159,8 @@ configurable in pyproject.toml — they're run modes, not project policy.
   + seventy-nine characters and really should be wrapped.
   ```
 
-- **List items** (bullet and enumerated)
+- **List items** (bullet and enumerated), including nested sublists
+  separated from their parent by a blank line
 
   ```diff
   - - This is a very long bullet item that exceeds the target width and needs to be re-wrapped to fit within the line limit.

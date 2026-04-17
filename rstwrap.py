@@ -449,6 +449,27 @@ def _prev_nonblank_ends_with_colons(out):
     return False
 
 
+def _in_indented_literal_block(out):
+    """True if *out* is currently inside an indented literal block
+    body.
+
+    A literal block is introduced by a paragraph (or a standalone
+    line) ending in ``::``; its body is any indented content that
+    follows. We're inside the body when the nearest non-indented
+    non-blank line of *out* ends with ``::``. Differs from
+    :func:`_prev_nonblank_ends_with_colons`, which only checks the
+    immediately previous non-blank line -- that one sees the
+    block's own (indented) lines and would miss the introducer.
+    """
+    for ln in reversed(out):
+        if not ln.strip():
+            continue
+        if ln[:1] in {" ", "\t"}:
+            continue
+        return ln.rstrip().endswith("::")
+    return False
+
+
 def _handle_list_run(lines, i, n, width, join):
     """Wrap a run of sibling list items at the same indent level.
 
@@ -738,6 +759,48 @@ def _rewrite_blocks(lines, width, join):
         raw = lines[i]
         stripped = raw.strip()
 
+        # Block-boundary predicate shared by the list-item dispatch
+        # below (unindented bullets) and the nested-list branch
+        # immediately following (indented bullets). A bullet is the
+        # start of a list only at a block boundary; otherwise it's
+        # line-wrap continuation of the preceding prose.
+        at_block_start = (
+            not out
+            or not out[-1].strip()
+            or _is_underline(out[-1])
+            or _is_short_underline(out[-1])
+            or out[-1][:1] in {" ", "\t"}
+        )
+
+        # Nested list: an indented bullet or enum item at a block
+        # boundary is a nested list attached to the previous
+        # construct. Dispatch to _handle_list_run before
+        # _try_verbatim catches it as a plain indented line.
+        # Docutils parses this shape as <bullet_list> inside the
+        # parent <list_item> (or as block_quote > bullet_list when
+        # the previous construct isn't a list), so wrapping the
+        # children at their own text column preserves the doctree.
+        # Exclusions:
+        # - Inside an indented literal block body (parent paragraph
+        #   ends in ``::``): content is opaque, including any line
+        #   that happens to be bullet-shaped (e.g. ``* 1 Thread ...``
+        #   in gdb output). Must pass through verbatim.
+        # - An indented bullet that directly follows unindented
+        #   prose with no blank line is Case B (malformed nested
+        #   list); docutils parses it as part of the parent
+        #   paragraph, so we leave it verbatim rather than reshape
+        #   it.
+        if (
+            raw[:1] in {" ", "\t"}
+            and stripped
+            and at_block_start
+            and _match_list_item(raw)
+            and not _in_indented_literal_block(out)
+        ):
+            emitted, i = _handle_list_run(lines, i, n, width, join)
+            out.extend(emitted)
+            continue
+
         # Lines that pass through unchanged.
         result = _try_verbatim(raw, stripped, lines, i, n)
         if result is not None:
@@ -782,14 +845,8 @@ def _rewrite_blocks(lines, width, join):
         # boundaries: blank line, section underline, or after indented
         # content (nested body, continuation paragraph). A bullet that
         # directly follows unindented prose is a line-wrap continuation,
-        # not a new list.
-        at_block_start = (
-            not out
-            or not out[-1].strip()
-            or _is_underline(out[-1])
-            or _is_short_underline(out[-1])
-            or out[-1][:1] in {" ", "\t"}
-        )
+        # not a new list. The block-boundary predicate is computed
+        # once at the top of the loop and reused here.
         if at_block_start and _match_list_item(raw):
             emitted, i = _handle_list_run(lines, i, n, width, join)
             out.extend(emitted)
