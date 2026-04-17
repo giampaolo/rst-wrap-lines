@@ -449,24 +449,49 @@ def _prev_nonblank_ends_with_colons(out):
     return False
 
 
-def _in_indented_literal_block(out):
-    """True if *out* is currently inside an indented literal block
-    body.
+def _prev_block_is_opaque(out, current_indent):
+    """True if the current indented content would be the body of an
+    opaque construct (literal block, directive, comment, hyperlink
+    target, ...) whose content must not be reshaped as a nested
+    list.
 
-    A literal block is introduced by a paragraph (or a standalone
-    line) ending in ``::``; its body is any indented content that
-    follows. We're inside the body when the nearest non-indented
-    non-blank line of *out* ends with ``::``. Differs from
-    :func:`_prev_nonblank_ends_with_colons`, which only checks the
-    immediately previous non-blank line -- that one sees the
-    block's own (indented) lines and would miss the introducer.
+    Scans *out* backward looking for an "opaque introducer" --
+    either a line ending in ``::`` (literal block intro, prose
+    paragraph or standalone ``::``) or a line starting with ``..``
+    (explicit markup: directive, comment, hyperlink target,
+    substitution def, footnote def, anonymous target) -- at an
+    indent less than the current block's indent.
+
+    The walk tracks a decreasing indent watermark (starting at
+    *current_indent*): blanks and lines at indent >= watermark
+    are skipped (still inside the block we're checking). When a
+    strictly-shallower non-blank line is seen, it's either the
+    opaque introducer we're looking for (return True), or it's
+    a shallower non-opaque line inside an *enclosing* opaque
+    block (update watermark to its indent and keep walking).
+    This is required for nested literal block content: a line at
+    col 4 inside a ``::``-introduced block whose body runs at col
+    3 needs the walk to pass over the col-3 lines and find the
+    ``::`` intro at col 0.
+
+    An indented directive is caught as an indented line by
+    ``_try_verbatim`` and never reaches the directive handler,
+    so its body is dispatched line-by-line and this guard is
+    what prevents reshaping it.
     """
+    min_indent = current_indent
     for ln in reversed(out):
         if not ln.strip():
             continue
-        if ln[:1] in {" ", "\t"}:
+        this_indent = len(ln) - len(ln.lstrip(" \t"))
+        if this_indent >= min_indent:
             continue
-        return ln.rstrip().endswith("::")
+        s = ln.rstrip()
+        if s.endswith("::"):
+            return True
+        if s.lstrip().startswith(".."):
+            return True
+        min_indent = this_indent
     return False
 
 
@@ -780,22 +805,38 @@ def _rewrite_blocks(lines, width, join):
         # parent <list_item> (or as block_quote > bullet_list when
         # the previous construct isn't a list), so wrapping the
         # children at their own text column preserves the doctree.
-        # Exclusions:
-        # - Inside an indented literal block body (parent paragraph
-        #   ends in ``::``): content is opaque, including any line
-        #   that happens to be bullet-shaped (e.g. ``* 1 Thread ...``
-        #   in gdb output). Must pass through verbatim.
-        # - An indented bullet that directly follows unindented
-        #   prose with no blank line is Case B (malformed nested
-        #   list); docutils parses it as part of the parent
-        #   paragraph, so we leave it verbatim rather than reshape
-        #   it.
+        # Three guards, all required:
+        # 1. Narrow block-boundary predicate (blank-or-start only).
+        #    The broader ``at_block_start`` above also matches
+        #    "after any indented line", which would mis-fire on a
+        #    bullet-shaped continuation line inside a literal block
+        #    body, inside an indented prose paragraph followed by
+        #    a bullet (docutils parses that as one paragraph with
+        #    the ``*`` as inline text, not a list), and inside a
+        #    homemade ASCII table whose rows start with ``+``.
+        # 2. Space-indented only. Tab-indented content is left
+        #    verbatim because ``_handle_list_run``'s
+        #    ``visually_attached`` guard measures indent with
+        #    ``lstrip(' ')`` (spaces only): a tab-nested child
+        #    registers as indent 0, the guard reports "not
+        #    attached", and wrapping the parent into two lines
+        #    flips docutils' parse of the whole block
+        #    (``<list_item><definition_list>...`` becomes
+        #    ``<list_item><paragraph>...<block_quote>...``).
+        # 3. Opaque-context guard: even when the previous line is
+        #    blank, the container above may be the body of an
+        #    indented directive or literal block whose content
+        #    must stay verbatim (e.g. ``- name: ...`` inside an
+        #    indented ``.. code-block:: yaml``, which never reaches
+        #    the directive handler because it's itself indented).
+        nested_at_block_start = not out or not out[-1].strip()
+        current_indent = len(raw) - len(raw.lstrip(" \t"))
         if (
-            raw[:1] in {" ", "\t"}
+            raw[:1] == " "
             and stripped
-            and at_block_start
+            and nested_at_block_start
             and _match_list_item(raw)
-            and not _in_indented_literal_block(out)
+            and not _prev_block_is_opaque(out, current_indent)
         ):
             emitted, i = _handle_list_run(lines, i, n, width, join)
             out.extend(emitted)
