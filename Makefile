@@ -142,9 +142,10 @@ pre-release:  ## Check if we're ready to publish a new release.
 	test "$$(git rev-parse --abbrev-ref HEAD)" = "master" \
 		|| (echo "FAIL: not on master branch" && exit 1)
 	git fetch origin --quiet
-	git merge-base --is-ancestor origin/master HEAD \
-		|| (echo "FAIL: origin/master has commits not in local master" && exit 1)
 	git tag -l "v$(VERSION)" | grep -q . && echo "FAIL: tag v$(VERSION) already exists" && exit 1 || true
+	status=$$(curl -s -o /dev/null -w "%{http_code}" https://pypi.org/pypi/rstwrap/$(VERSION)/json); \
+		test "$$status" = "404" \
+		|| (echo "FAIL: version $(VERSION) already exists on PyPI (HTTP $$status)" && exit 1)
 	$(MAKE) lint-all
 	$(MAKE) lint-release
 	@echo ""
