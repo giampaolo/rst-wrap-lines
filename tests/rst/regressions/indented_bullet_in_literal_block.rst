@@ -1,8 +1,7 @@
 ..
-    Regression: nested-list dispatch fires on an indented bullet-
-    looking line inside a ``::`` literal block. Reduced from
-    CPython's ``Doc/howto/gdb_helpers.rst`` (``gdb``'s ``info
-    threads`` output).
+    Regression: nested-list dispatch fired on a bullet-shaped line
+    inside a ``::`` literal block (``gdb``'s ``info threads`` output).
+    Found in CPython ``Doc/howto/gdb_helpers.rst``.
 
 The ``info threads`` command will give you a list of the threads within the
 process, and you can use the ``thread`` command to select a different one::

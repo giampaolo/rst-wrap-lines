@@ -1,11 +1,7 @@
 ..
-    Regression: an enumerated list that follows a 2-char section
-    underline was not recognized as a new block. The ``at_block_start``
-    predicate checked ``_is_underline`` (3+ chars) but not
-    ``_is_short_underline`` (1-2 chars), so the first item's marker
-    fell through to the prose handler and the items got merged into a
-    single paragraph. Encountered in Ansible's
-    ``dev_guide/style_guide/spelling_word_choice.rst``.
+    Regression: an enum list right after a 2-char underline was not
+    recognised; at_block_start must accept _is_short_underline too.
+    Found in Ansible ``dev_guide/style_guide/spelling_word_choice.rst``.
 
 Intro.
 

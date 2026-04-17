@@ -1,9 +1,8 @@
 ..
-    Regression: nested-list dispatch fires inside an indented
-    ``.. code-block:: yaml`` body. The indented marker is caught
-    by ``_try_verbatim`` and never reaches the directive handler,
-    so YAML ``- name:`` items are dispatched individually.
-    Reduced from Ansible's porting guides.
+    Regression: YAML ``- name:`` items inside an indented
+    ``.. code-block:: yaml`` body were dispatched as bullets --
+    nested-list dispatch fired before the directive handler.
+    Found in Ansible porting guides.
 
 * Conditionals - due to mitigation of security issue CVE-2023-5764
   in ansible-core 2.14.12, conditional expressions with embedded

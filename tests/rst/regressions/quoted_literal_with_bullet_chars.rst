@@ -1,12 +1,8 @@
 ..
-    Regression: a quoted literal block (introduced by ``::``) whose
-    every line begins with ``*`` (or ``-`` / ``+``) is parsed by
-    docutils as a literal block, not as a bullet list. Our main loop
-    had the list-item dispatch BEFORE the quoted-literal-block check,
-    so the ``*`` lines were intercepted as a bullet list, wrapped, and
-    the literal block was destroyed in the doctree.
-
-    Encountered in Python PEP 0653.
+    Regression: a quoted literal block after ``::`` whose lines start
+    with ``*`` / ``-`` / ``+`` is literal, not a bullet list.
+    Quoted-literal check must come before list dispatch.
+    Found in Python PEP 0653.
 
 This has been rejected for a few reasons::
 

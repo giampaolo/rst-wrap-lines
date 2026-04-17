@@ -1,13 +1,9 @@
 ..
-    Regression: docutils accepts any non-alphanumeric printable 7-bit
-    ASCII punctuation as a section adornment character. Our
-    ``_UNDERLINE_CHARS`` had a restricted subset that omitted common
-    chars like ``/``. Titles underlined with the missing chars fell
-    through to the prose handler and got merged with their underlines,
-    destroying the section in the doctree.
-
-    Encountered in Python PEP 3108 which uses ``//////////`` as a
-    section underline.
+    Regression: docutils accepts any non-alnum 7-bit ASCII
+    punctuation as an adornment char. _UNDERLINE_CHARS omitted
+    ``/``, so titles like ``Python 2.6\n//////`` fell into the
+    prose handler and lost their section.
+    Found in Python PEP 3108.
 
 Intro paragraph before.
 

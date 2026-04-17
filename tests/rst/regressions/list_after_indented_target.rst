@@ -1,11 +1,8 @@
-List after indented hyperlink target
-====================================
-
-Regression for a bug where a bullet list following an indented
-embedded hyperlink target (the continuation body of a previous
-item, separated only by a blank line from the target) was not
-recognised as a list. The block-start predicate needs to treat
-"previous output line is indented" as a block boundary too.
+..
+    Regression: a bullet list after an indented hyperlink target
+    (continuation body of a previous item) was not recognised; the
+    block-start predicate must treat an indented previous line as
+    a block boundary.
 
 * First item with a continuation body.
 

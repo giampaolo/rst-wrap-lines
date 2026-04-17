@@ -1,11 +1,8 @@
 ..
-    Regression: an enumerated list using ``(a)``, ``(b)``, ... (single
-    letter surrounded by parens) is a valid RST enum list with
-    ``prefix="("`` and ``suffix=")"``. Encountered in the Linux kernel's
-    ``Documentation/admin-guide/cgroup-v2.rst``. The tool's ``_ENUM_RE``
-    only matched ``(\d+)`` (parenthesized digit), so letter-form
-    parenthesized enums fell through to the prose handler and got
-    merged into a single paragraph, breaking the doctree.
+    Regression: ``(a)``, ``(b)``, ... is a valid enum list.
+    _ENUM_RE only matched parenthesized digits, so letter-form items
+    fell into the prose handler and merged into a paragraph.
+    Found in Linux ``admin-guide/cgroup-v2.rst``.
 
 setns(2) to another cgroup namespace is allowed when:
 

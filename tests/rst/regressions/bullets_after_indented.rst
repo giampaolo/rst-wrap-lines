@@ -1,13 +1,8 @@
-Bullets after indented content
-==============================
-
-Regression for a bug found in the Sphinx changelog docs. A list item
-whose continuation line starts with ``+ `` (a valid bullet character)
-accidentally matches ``_match_list_item()``, causing
-``_handle_list_run`` to break early. All subsequent bullets then go
-through ``_handle_prose`` one-by-one. If one of those bullets exceeds
-the width the fidelity guard fails and multiple bullet items get
-merged into a single prose paragraph.
+..
+    Regression: a bullet item whose continuation starts with ``+ ``
+    breaks _handle_list_run early; the remaining bullets then fall
+    into _handle_prose and get merged into a prose paragraph.
+    Found in Sphinx changelog docs.
 
 * An item whose continuation looks like a ``+`` bullet:
   + or ^ selectors are used here

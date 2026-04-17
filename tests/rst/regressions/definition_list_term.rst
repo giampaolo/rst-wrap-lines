@@ -1,10 +1,7 @@
 ..
-    Regression: a definition-list term is an unindented line immediately
-    followed (no blank line) by an indented definition body. If the tool
-    wraps a long term line into two lines, docutils parses it as two
-    separate terms instead of one, changing the doctree. The dispatch
-    loop in ``wrap_rst`` must detect this pattern and pass the term
-    through verbatim.
+    Regression: a definition-list term (unindented line + indented
+    body, no blank between) wrapped to two lines becomes two
+    separate terms. Keep the term verbatim.
 
 term one
     The definition of term one.

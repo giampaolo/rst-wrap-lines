@@ -1,9 +1,6 @@
 ..
-    Regression: RST option list items (``-f FILE``, ``--output FILE``)
-    must not be merged into prose paragraphs. Without the
-    ``_OPTION_LIST_RE`` check in the dispatch loop, the tool would treat
-    option lines as ordinary prose and join them into a single wrapped
-    paragraph, destroying the option-list structure in the doctree.
+    Regression: option list items (``-f FILE``, ``--output FILE``)
+    must stay verbatim, not be merged into a prose paragraph.
 
 -h         Show help message and exit.
 -f FILE    Read input from FILE instead of stdin.

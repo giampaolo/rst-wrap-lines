@@ -1,11 +1,7 @@
-List after section underline
-============================
-
-Regression for a bug where a bullet list directly following a
-section underline (no blank line between them) was not recognised
-as a list. The main loop's block-start predicate required the
-previous output line to be blank, so the bullets fell through to
-the prose / definition-list branches and got merged or mangled.
+..
+    Regression: a bullet list directly after a section underline
+    (no blank line) was not recognised; the block-start predicate
+    must treat a section underline as a block boundary.
 
 Subsection
 ----------

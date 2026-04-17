@@ -1,18 +1,9 @@
 ..
-    Regression: when a bullet-list item uses two spaces between the
-    bullet and the text (``*  text``), the text column is 3 rather
-    than 2. A nested sibling-looking bullet at column 2 is then *less
-    than* the text column, so docutils parses it as a separate block
-    (wrapping it in a ``<block_quote>``) rather than as nested inside
-    the outer item.
-
-    ``_handle_list_run`` normalized the bullet prefix to one space
-    (``* text``), shifting the text column to 2. The nested bullet at
-    column 2 then became *equal to* the text column, and docutils
-    re-parsed it as nested inside the outer item -- changing the
-    doctree. The bug only manifests when the outer item is long
-    enough to be re-wrapped (otherwise it is kept verbatim and the
-    text column is preserved). Encountered in Ansible's
+    Regression: ``*  text`` (two spaces) has text column 3; a
+    bullet-shaped line at col 2 parses as block_quote. Normalizing
+    the prefix to one space shifted the column to 2 and turned that
+    block_quote into a nested list item, changing the doctree.
+    Only triggers when the item is re-wrapped. Found in Ansible
     ``community/collection_contributors/collection_reviewing.rst``.
 
 Intro.

@@ -1,9 +1,6 @@
-Short section titles
-====================
-
-Section titles whose underline is only 2 characters long must be
-preserved verbatim. Wrapping must not merge the title line with its
-underline.
+..
+    Regression: section titles with a 2-char underline (``io`` /
+    ``--``) must stay verbatim; title and underline must not merge.
 
 io
 --

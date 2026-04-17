@@ -1,14 +1,9 @@
 ..
-    Regression: a field list whose field name is an inline literal
-    (``:``p_offset``: segment file offset``) is valid RST -- docutils
-    parses it as a field_list with an inline-literal field_name. Our
-    ``_FIELD_LIST_RE`` excluded backticks from the field-name charset
-    (to avoid matching ``:role:`text``` inline markup), which also
-    excluded legitimate inline-literal field names. Encountered in the
-    Linux kernel's ``Documentation/arch/arm64/memory-tagging-extension
-    .rst``. The trailing ``:(?:\s|$)`` already disambiguates roles
-    (which have no space after the closing colon), so the backtick
-    exclusion is not needed.
+    Regression: a field name containing an inline literal
+    (``:``p_offset``: ...``) is valid but was excluded by
+    _FIELD_LIST_RE's backtick ban. The trailing ``(?:\s|$)`` already
+    disambiguates roles, so the ban is unnecessary.
+    Found in Linux ``arch/arm64/memory-tagging-extension.rst``.
 
 Some prose paragraph before the field list.
 

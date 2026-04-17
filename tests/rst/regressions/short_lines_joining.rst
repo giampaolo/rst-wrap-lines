@@ -1,9 +1,6 @@
-Short lines joining
-===================
-
-Multiple short consecutive lines that form a single paragraph (no
-blank line between them) must be joined and re-flowed to fill the
-target width.
+..
+    Short consecutive lines in one paragraph must be joined and
+    re-flowed. Separate paragraphs must stay separate.
 
 foo
 bar

@@ -1,8 +1,8 @@
 ..
-    Regression: nested-list dispatch fires on an indented bullet
-    right after indented prose (no blank). Docutils parses the
-    whole run as one paragraph (``*`` is inline text). Reduced
-    from pytest's ``doc/en/backwards-compatibility.rst``.
+    Regression: nested-list dispatch fired on an indented bullet
+    right after indented prose (no blank); docutils parses the run
+    as one paragraph (``*`` is inline text).
+    Found in pytest ``doc/en/backwards-compatibility.rst``.
 
 a) trivial: APIs that trivially translate to the new mechanism.
 

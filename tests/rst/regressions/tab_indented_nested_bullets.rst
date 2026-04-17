@@ -1,10 +1,8 @@
 ..
-    Regression: ``_handle_list_run``'s ``visually_attached`` guard
-    uses ``lstrip(' ')`` (no tabs), so tab-nested children read as
-    indent 0 and "not attached"; wrapping a long parent to two
-    lines then flips the doctree. Dispatch fires on spaces only
-    until the measurement is fixed. Reduced from Linux's
-    ``misc-devices/xilinx_sdfec.rst``.
+    Regression: visually_attached uses ``lstrip(' ')`` (no tabs), so
+    tab-nested children read as indent 0; wrapping the parent flipped
+    the doctree. Nested dispatch is gated to space-indent only.
+    Found in Linux ``misc-devices/xilinx_sdfec.rst``.
 
 Monitor for Interrupts
 ----------------------

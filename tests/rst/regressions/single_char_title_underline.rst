@@ -1,10 +1,8 @@
 ..
-    Regression: a 1-char section title (``R``) with a 1-char underline
-    (``-``) is a valid RST section -- docutils recognizes any repeated
-    punctuation underline of length >= title length. ``_is_short_
-    underline`` only accepted length 2, so the ``-`` fell through to
-    the prose handler and got merged with the title into ``R -``,
-    destroying the section. Encountered in Python PEP 0450.
+    Regression: ``R\n-`` (1-char title, 1-char underline) is a valid
+    section; _is_short_underline only accepted length 2, so ``-``
+    merged with the title into ``R -``.
+    Found in Python PEP 0450.
 
 Some prose paragraph before.
 

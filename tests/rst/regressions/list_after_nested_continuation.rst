@@ -1,11 +1,8 @@
-List sibling after nested body and continuation
-================================================
-
-Regression for a bug where a sibling bullet at column 0, following
-a parent item whose body contained a nested bullet list plus a
-continuation paragraph (all indented), was not recognised as a new
-list item. The block-start predicate needs to treat the indented
-continuation line as a block boundary.
+..
+    Regression: a col-0 sibling bullet following a parent whose body
+    had a nested list + continuation paragraph was not recognised
+    as a new list item. Indented continuation lines must count as
+    a block boundary.
 
 * Parent item:
 

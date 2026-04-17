@@ -3,7 +3,7 @@
     table whose rows begin with ``+``. The intro ends with ``:``
     (not ``::``), so the opaque-context guard doesn't apply. Rows
     must exceed width, else ``fits_verbatim`` masks the bug.
-    Reduced from Linux's ``admin-guide/pm/amd-pstate.rst``.
+    Found in Linux ``admin-guide/pm/amd-pstate.rst``.
 
 Results:
 

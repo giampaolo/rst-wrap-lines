@@ -2,7 +2,7 @@
     Regression: unindented doctest blocks at column 0 must be passed
     through verbatim. The tool was merging them into prose because
     ``>>>`` didn't match any special-case check in the main loop.
-    Found in ``cpython/Doc/faq/programming.rst``.
+    Found in CPython ``Doc/faq/programming.rst``.
 
 This is illustrated by this example:
 

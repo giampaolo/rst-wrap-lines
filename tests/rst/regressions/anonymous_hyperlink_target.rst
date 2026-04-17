@@ -1,9 +1,6 @@
 ..
-    Regression: anonymous hyperlink targets (``__ URL``) must be passed
-    through verbatim. Without the ``stripped.startswith("__ ")`` guard
-    in the dispatch loop, the tool would merge the target URL into the
-    surrounding prose paragraph, turning it into garbled text and losing
-    the hyperlink target from the doctree.
+    Regression: an anonymous hyperlink target (``__ URL``) must stay
+    verbatim -- merging into surrounding prose garbles the target.
 
 `Example link`__
 

@@ -1,10 +1,7 @@
 ..
-    Nested bullet list (parent + blank + indented children) whose
-    over-width children must be wrapped. Integration assertions
-    silently accept the buggy verbatim output, so the real catch
-    is the paired unit test
-    ``test_nested_list_after_blank_wrapped``. Reduced from the
-    psutil changelog.
+    Example: over-width children of a nested bullet list must be
+    wrapped. Doctree is unchanged either way, so the catch is the
+    paired unit test. Found in the psutil changelog.
 
 - Split docs into multiple sections:
 

@@ -1,16 +1,8 @@
 ..
-    Regression: a simple table may contain another simple table nested
-    inside one of its cells (see the Description column below). The
-    outer table's closing border is at column 0; the inner border is
-    indented. Our collector treated any border-line-followed-by-blank
-    as the closing of the outer table, so the inner mini-table's
-    closing border (which is indented and followed by a blank line)
-    was mistakenly taken as the outer closer, splitting the table and
-    breaking the doctree. The fix is to compare the indent of the
-    candidate closing border against the indent of the opening border.
-
-    Encountered in the Linux kernel's
-    ``Documentation/driver-api/nvdimm/btt.rst``.
+    Regression: an inner simple table's closing border (indented,
+    followed by blank) was taken as the outer table's closer,
+    splitting it. The closer must match the opener's indent.
+    Found in Linux ``driver-api/nvdimm/btt.rst``.
 
 3. Theory of Operation
 ======================
