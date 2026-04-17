@@ -1,14 +1,11 @@
 Indented bullet inside literal block
 ====================================
 
-Regression for the nested-list dispatch branch firing on an
-indented line that *looks* like a bullet but actually lives
-inside a literal block introduced by ``::``. The dispatch
-must not re-route such lines to ``_handle_list_run``; the
-content is opaque and must pass through verbatim. Reduced
-from ``Doc/howto/gdb_helpers.rst`` in the CPython docs, where
-``gdb``'s ``info threads`` output contains a ``* 1 Thread ...``
-line marking the current thread.
+Regression: nested-list dispatch fires on an indented line that
+looks like a bullet but lives inside a ``::`` literal block --
+content is opaque and must pass through verbatim. Reduced from
+CPython's ``Doc/howto/gdb_helpers.rst`` (``gdb``'s ``info threads``
+output with ``* 1 Thread ...`` marking the current thread).
 
 The ``info threads`` command will give you a list of the threads within the
 process, and you can use the ``thread`` command to select a different one::

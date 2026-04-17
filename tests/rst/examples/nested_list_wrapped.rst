@@ -1,18 +1,13 @@
 Nested list items wrapped
 =========================
 
-Regression for nested bullet lists -- parent line, blank line, then
-indented child bullets -- where over-width child items were passed
-through verbatim because the main dispatch's indented-line
-passthrough branch caught them before the list-item branch could
-see them. Reduced from a real-world block in the psutil changelog.
-
-The buggy behaviour passes the input through unchanged, so the
-integration assertions in ``tests/test_integration.py`` silently
-accept it (doctree unchanged because output == source; the width
-assertion allows over-width lines that already existed in the
-source). The real catch lives in the paired unit test
-``tests/test_lists.py::TestListItems::test_nested_list_after_blank_wrapped``.
+Nested bullet list (parent + blank + indented children) whose
+over-width children must be wrapped. The integration assertions
+silently accept the buggy verbatim output (doctree unchanged;
+width check allows over-width lines already in the source), so
+the real catch is the paired unit test
+``test_nested_list_after_blank_wrapped``. Reduced from the
+psutil changelog.
 
 - Split docs into multiple sections:
 

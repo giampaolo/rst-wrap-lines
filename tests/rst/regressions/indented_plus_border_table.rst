@@ -1,18 +1,13 @@
 Indented ASCII table with ``+`` row prefix, not in literal block
 =================================================================
 
-Regression for the nested-list dispatch branch firing on a homemade
-ASCII table whose rows begin with ``+`` (not a real RST grid table,
-which would use ``|`` for data rows). The table lives inside
-indented prose that ends with a single colon (not ``::``), so it's
-not a literal block body -- docutils parses it as ad-hoc content in
-a block quote -- and the existing literal-block guard doesn't
-apply. The dispatcher must leave it verbatim: the rows look like
-bullet items (``+ text``) but are inline content of a mangled
-table whose shape must be preserved. Requires rows longer than the
-target width so that ``_handle_list_run``'s ``fits_verbatim`` guard
-doesn't silently mask the bug. Reduced from
-``Documentation/admin-guide/pm/amd-pstate.rst`` in the Linux kernel.
+Regression: nested-list dispatch fires on a homemade ASCII table
+whose rows begin with ``+`` (not an RST grid table, which uses
+``|`` for data). The intro ends with a single ``:`` (not ``::``),
+so the opaque-context guard doesn't apply. Rows must exceed the
+target width, else ``_handle_list_run``'s ``fits_verbatim`` masks
+the bug. Reduced from Linux's
+``Documentation/admin-guide/pm/amd-pstate.rst``.
 
 Results:
 

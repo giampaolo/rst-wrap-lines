@@ -1,16 +1,12 @@
 Indented bullet right after indented prose, no blank line
 ==========================================================
 
-Regression for the nested-list dispatch branch firing on an
-indented bullet that follows an indented prose line with no blank
-separator. Docutils parses the whole run as a single paragraph
-(the ``*`` characters are inline text, not list markers), but the
-old predicate saw ``out[-1]`` as non-blank-indented and treated
-that as a block boundary for the indented-bullet branch -- which
-turned the paragraph into ``<block_quote> + <bullet_list>`` in
-the output doctree. The guard must only fire after a blank line.
-Reduced from ``doc/en/backwards-compatibility.rst`` in pytest
-(where the enclosing construct is an enum list, not a directive).
+Regression: nested-list dispatch fires on an indented bullet
+that follows an indented prose line with no blank between them.
+Docutils parses the whole run as one paragraph (``*`` is inline
+text, not a list marker), so any reshape changes the doctree.
+Reduced from pytest's ``doc/en/backwards-compatibility.rst``
+(enclosed in an enum list, not a directive).
 
 a) trivial: APIs that trivially translate to the new mechanism.
 

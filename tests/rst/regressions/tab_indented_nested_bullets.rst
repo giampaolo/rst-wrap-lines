@@ -1,23 +1,13 @@
 Tab-indented nested bullets left verbatim
 ==========================================
 
-Regression for the nested-list dispatch branch firing on
-tab-indented content. The Linux kernel (and other old-school
-projects) indent bullets with hard tabs; docutils expands tabs to
-8 cols before parsing, but ``_handle_list_run``'s
-``visually_attached`` guard measures indent as ``len - len.lstrip(' ')``
-(spaces only), so a tab-nested bullet reads as ``indent = 0`` and
-the guard mis-reports "not attached". Wrapping a long parent item
-into two lines under those conditions flips docutils' parse of
-``<list_item><definition_list>...`` into
-``<list_item><paragraph>...<block_quote><bullet_list>...``, which
-breaks the doctree invariant.
-
-Until the measurement bug in ``visually_attached`` is fixed, the
-dispatch branch only fires on space-indented nested content;
-tab-indented content stays verbatim (pre-fix behaviour).
-Reduced from ``Documentation/misc-devices/xilinx_sdfec.rst`` in
-the Linux kernel.
+Regression: ``_handle_list_run``'s ``visually_attached`` guard
+measures indent with ``lstrip(' ')`` (no tabs), so a tab-nested
+child reads as indent 0 and "not attached"; wrapping a long
+parent to two lines then flips docutils' parse of the block.
+Until that measurement is fixed, the nested-list dispatch fires
+only on space-indented content. Reduced from Linux's
+``Documentation/misc-devices/xilinx_sdfec.rst``.
 
 Monitor for Interrupts
 ----------------------
