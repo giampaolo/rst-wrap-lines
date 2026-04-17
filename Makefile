@@ -43,40 +43,40 @@ test-regressions:  ## Run only the local regression fixture tests.
 test-examples:  ## Run only the local example fixture tests.
 	$(PYTHON) -m pytest -k "local/examples/" tests/test_integration.py $(ARGS)
 
-test-docutils:
-	$(PYTHON) -m pytest -k "TestDocutils" $(ARGS)
-
 test-last-failed:  ## Re-run tests which failed on last run
 	$(PYTHON) -m pytest --last-failed $(ARGS)
 
 # --- corpus integration tests
 
+test-docutils:
+	$(PYTHON) -m pytest -x -n auto -k "TestDocutils" $(ARGS)
+
 test-cpython:
-	$(PYTHON) -m pytest -n auto -k "cpython/" tests/test_integration.py $(ARGS)
+	$(PYTHON) -m pytest -x -n auto -k "cpython/" tests/test_integration.py $(ARGS)
 
 test-peps:
-	$(PYTHON) -m pytest -n auto -k "peps/" tests/test_integration.py $(ARGS)
+	$(PYTHON) -m pytest -x -n auto -k "peps/" tests/test_integration.py $(ARGS)
 
 test-sphinx:
-	$(PYTHON) -m pytest -n auto -k "sphinx/" tests/test_integration.py $(ARGS)
+	$(PYTHON) -m pytest -x -n auto -k "sphinx/" tests/test_integration.py $(ARGS)
 
 test-linux:
-	$(PYTHON) -m pytest -n auto -k "linux/" tests/test_integration.py $(ARGS)
+	$(PYTHON) -m pytest -x -n auto -k "linux/" tests/test_integration.py $(ARGS)
 
 test-sqlalchemy:
-	$(PYTHON) -m pytest -n auto -k "sqlalchemy/" tests/test_integration.py $(ARGS)
+	$(PYTHON) -m pytest -x -n auto -k "sqlalchemy/" tests/test_integration.py $(ARGS)
 
 test-pytest:
-	$(PYTHON) -m pytest -n auto -k "pytest/" tests/test_integration.py $(ARGS)
+	$(PYTHON) -m pytest -x -n auto -k "pytest/" tests/test_integration.py $(ARGS)
 
 test-ansible:
-	$(PYTHON) -m pytest -n auto -k "ansible/" tests/test_integration.py $(ARGS)
+	$(PYTHON) -m pytest -x -n auto -k "ansible/" tests/test_integration.py $(ARGS)
 
 test-numpy:
-	$(PYTHON) -m pytest -n auto -k "numpy/" tests/test_integration.py $(ARGS)
+	$(PYTHON) -m pytest -x -n auto -k "numpy/" tests/test_integration.py $(ARGS)
 
 test-salt:
-	$(PYTHON) -m pytest -n auto -k "salt/" tests/test_integration.py $(ARGS)
+	$(PYTHON) -m pytest -x -n auto -k "salt/" tests/test_integration.py $(ARGS)
 
 # =====================================================================
 # Linters
