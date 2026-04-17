@@ -212,7 +212,11 @@ _UNDERLINE_CHARS = frozenset(string.punctuation)
 # Directive with ``::`` terminator. Optional domain prefix (``py:``,
 # ``c:``, ...). Group 1 is the bare directive name (used for the
 # prose-body whitelist below).
-_DIRECTIVE_RE = re.compile(r"^\.\.\s+(?:[\w-]+:)?([\w-]+)::")
+# The trailing ``(?=\s|$)`` lookahead matters: docutils only treats
+# ``.. NAME::`` as a directive when ``::`` is followed by whitespace
+# or end-of-line. ``.. note::hello`` and ``.. note:::ref:`x``` are
+# parsed as comments, not directives. See docs/internal/rst_rules.md.
+_DIRECTIVE_RE = re.compile(r"^\.\.\s+(?:[\w-]+:)?([\w-]+)::(?=\s|$)")
 
 # Directives whose body is prose (and therefore wrappable). Anything
 # not in this set is treated as opaque -- we don't know its content
