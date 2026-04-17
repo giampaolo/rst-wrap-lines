@@ -43,6 +43,9 @@ test-regressions:  ## Run only the local regression fixture tests.
 test-docutils:
 	$(PYTHON) -m pytest -k "TestDocutils" $(ARGS)
 
+test-last-failed:  ## Re-run tests which failed on last run
+	$(PYTHON) -m pytest --last-failed $(ARGS)
+
 # --- corpus integration tests
 
 test-cpython:
