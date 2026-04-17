@@ -174,6 +174,28 @@ class TestListItems(BaseTest):
         out = self.wrap(src)
         assert out == src
 
+    def test_nested_list_after_blank_wrapped(self):
+        # Regression: a proper nested bullet list (parent + blank
+        # line + indented children) had over-width children passed
+        # through verbatim because the dispatch's indented-line
+        # passthrough caught them before the list-item branch saw
+        # them. Docutils parses this shape as a nested <bullet_list>
+        # inside the parent <list_item>, so wrapping the children
+        # at their own text column preserves the doctree.
+        src = (
+            "- Split docs into multiple sections:\n"
+            "\n"
+            "  - :doc:`/alternatives <alternatives>`: list of"
+            " alternative Python libraries and tools that overlap"
+            " with psutil.\n"
+            "  - :doc:`/credits <credits>`: list contributors and"
+            " donors (was old ``CREDITS`` in root dir).\n"
+        )
+        out = self.wrap(src)
+        for line in out.splitlines():
+            assert len(line) <= self.WIDTH
+        self.check_all(src, out)
+
     def test_bullet_with_long_hyperlink_continuation_not_lengthened(self):
         # A bullet whose continuation contains a long hyperlink that was
         # manually split across lines. Joining produces an un-splittable

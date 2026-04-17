@@ -449,6 +449,32 @@ def _prev_nonblank_ends_with_colons(out):
     return False
 
 
+def _prev_block_is_opaque(out, current_indent):
+    """True if the current indented block is the body of an opaque
+    construct (literal block ``::``, or explicit markup ``..``)
+    and must not be reshaped as a nested list.
+
+    Walks *out* backward with a decreasing indent watermark so an
+    introducer at col 0 is still found below a non-opaque line at
+    an intermediate indent (e.g. col-3 prose + col-4 enum-shaped
+    text, all one ``::`` block).
+    """
+    min_indent = current_indent
+    for ln in reversed(out):
+        if not ln.strip():
+            continue
+        this_indent = len(ln) - len(ln.lstrip(" \t"))
+        if this_indent >= min_indent:
+            continue
+        s = ln.rstrip()
+        if s.endswith("::"):
+            return True
+        if s.lstrip().startswith(".."):
+            return True
+        min_indent = this_indent
+    return False
+
+
 def _handle_list_run(lines, i, n, width, join):
     """Wrap a run of sibling list items at the same indent level.
 
@@ -738,6 +764,41 @@ def _rewrite_blocks(lines, width, join):
         raw = lines[i]
         stripped = raw.strip()
 
+        # Block-boundary predicate, shared by the indented- and
+        # unindented-list dispatches below.
+        at_block_start = (
+            not out
+            or not out[-1].strip()
+            or _is_underline(out[-1])
+            or _is_short_underline(out[-1])
+            or out[-1][:1] in {" ", "\t"}
+        )
+
+        # Indented bullet at a block boundary = nested list
+        # (docutils: <bullet_list> in <list_item>, or
+        # block_quote > bullet_list otherwise). Dispatch before
+        # _try_verbatim swallows it. Guards:
+        #  - blank-or-start prev line (broader at_block_start
+        #    mis-fires on bullet-shaped continuations inside
+        #    literal bodies, prose + ``*`` no-blank, ``+``-prefix
+        #    ASCII tables);
+        #  - space indent only (tab indent hits a pre-existing
+        #    bug in _handle_list_run.visually_attached that
+        #    flips the doctree on multi-line parents);
+        #  - opaque context: see _prev_block_is_opaque.
+        nested_at_block_start = not out or not out[-1].strip()
+        current_indent = len(raw) - len(raw.lstrip(" \t"))
+        if (
+            raw[:1] == " "
+            and stripped
+            and nested_at_block_start
+            and _match_list_item(raw)
+            and not _prev_block_is_opaque(out, current_indent)
+        ):
+            emitted, i = _handle_list_run(lines, i, n, width, join)
+            out.extend(emitted)
+            continue
+
         # Lines that pass through unchanged.
         result = _try_verbatim(raw, stripped, lines, i, n)
         if result is not None:
@@ -782,14 +843,8 @@ def _rewrite_blocks(lines, width, join):
         # boundaries: blank line, section underline, or after indented
         # content (nested body, continuation paragraph). A bullet that
         # directly follows unindented prose is a line-wrap continuation,
-        # not a new list.
-        at_block_start = (
-            not out
-            or not out[-1].strip()
-            or _is_underline(out[-1])
-            or _is_short_underline(out[-1])
-            or out[-1][:1] in {" ", "\t"}
-        )
+        # not a new list. The block-boundary predicate is computed
+        # once at the top of the loop and reused here.
         if at_block_start and _match_list_item(raw):
             emitted, i = _handle_list_run(lines, i, n, width, join)
             out.extend(emitted)

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Wrap nested bullet lists: when a parent bullet is followed by a blank line,
+  over-width children are re-wrapped alongside the parent.
+
 ## 0.1.0 - 2026-04-16
 
 Initial release. Main features:
