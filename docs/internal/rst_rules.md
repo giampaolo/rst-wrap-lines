@@ -70,4 +70,4 @@ re-wrapped, and the comment node's text mutates — breaking the
 doctree invariant. The bug was found in
 `Documentation/userspace-api/media/v4l/mmap.rst` in the Linux
 kernel docs (regression:
-`tests/rst/malformed_directive_parsed_as_comment.rst`).
+`tests/rst/regressions/malformed_directive_parsed_as_comment.rst`).
